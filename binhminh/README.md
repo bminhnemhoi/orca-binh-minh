@@ -46,6 +46,10 @@ Remote: `github` (repo của bạn), `origin` (Orca gốc, stablyai/orca; chỉ 
 
 Lên bản Orca gốc mới (ví dụ v1.4.243) là việc lớn hơn cherry-pick: phải đưa các commit của nhánh `binhminh` lên bản mới và có thể gặp xung đột. Nên làm trên một nhánh thử, build và test trước khi dùng thật.
 
+## Thiết kế đang đề xuất
+
+- [Tài khoản Antigravity](docs/thiet-ke-tai-khoan-antigravity.md): hiển thị và đổi tài khoản Google đúng quy trình, hồ sơ API key chạy song song.
+
 ## Dung lượng
 
 Mỗi bản app khoảng 0,7 GB. Script build tự xóa các bản `binhminh-*` cũ hơn bản dự phòng.
