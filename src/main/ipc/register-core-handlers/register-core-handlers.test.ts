@@ -266,6 +266,9 @@ vi.mock('../shell', () => ({
 vi.mock('../pet', () => ({
   registerPetHandlers: registerPetHandlersMock
 }))
+vi.mock('../binhminh-corner', () => ({
+  registerBinhMinhCornerHandlers: vi.fn()
+}))
 
 vi.mock('../session', () => ({
   registerSessionHandlers: registerSessionHandlersMock

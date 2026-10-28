@@ -3,6 +3,8 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import type { ActiveRightSidebarTab } from '@/store/slices/editor'
 import { isPluginPanelTabKey } from '../../../../shared/plugins/plugin-manifest'
 import DeckUsagePanel from './DeckUsagePanel'
+import { BinhMinhCorner } from '../binhminh-corner/BinhMinhCorner'
+import { useCornerSettings } from '../binhminh-corner/use-corner-settings'
 
 const FileExplorer = lazy(() => import('./FileExplorer'))
 const SourceControl = lazy(() => import('./SourceControl'))
@@ -22,6 +24,7 @@ export function RightSidebarPanelContent({
   effectiveTab,
   rightSidebarOpen
 }: RightSidebarPanelContentProps): React.JSX.Element {
+  const corner = useCornerSettings()
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <Suspense fallback={null}>
@@ -50,7 +53,10 @@ export function RightSidebarPanelContent({
           <PluginPanel key={effectiveTab} tabKey={effectiveTab} />
         )}
       </Suspense>
-      <DeckUsagePanel />
+      {/* Why gated: without usage tracking the cost card only says n/a; the corner's quota card
+          shows the subscription limits that actually run out. */}
+      {!corner.enabled || corner.apiCostCard ? <DeckUsagePanel /> : null}
+      <BinhMinhCorner />
     </div>
   )
 }

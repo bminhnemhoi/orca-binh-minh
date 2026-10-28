@@ -38,7 +38,8 @@ import {
   renderInputSettingsSection,
   renderNotificationsSettingsSection,
   renderShortcutsSettingsSection,
-  renderStatsSettingsSection
+  renderStatsSettingsSection,
+  renderCornerSettingsSection
 } from './settings-interface-secondary-section-renderers'
 import {
   renderDeveloperPermissionsSettingsSection,
@@ -141,6 +142,7 @@ export function renderSettingsPage(context: SettingsRenderContext): React.JSX.El
                 {renderNotificationsSettingsSection(context)}
                 {renderShortcutsSettingsSection(context)}
                 {renderStatsSettingsSection(context)}
+                {renderCornerSettingsSection(context)}
                 {renderServersSettingsSection(context)}
                 {renderSshSettingsSection(context)}
                 {renderDeveloperPermissionsSettingsSection(context)}

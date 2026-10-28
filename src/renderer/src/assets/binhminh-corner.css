@@ -1,0 +1,345 @@
+/* Bình Minh corner pet. Every animation touches transform/opacity only, so it composites on the
+   GPU without relayout; hidden parts use display:none so their animations do not run at all. */
+
+.bm-pet {
+  overflow: visible;
+  --bm-cycle: 0.5s;
+}
+.bm-pet[data-speed='2'] {
+  --bm-cycle: 0.36s;
+}
+.bm-pet[data-speed='3'] {
+  --bm-cycle: 0.24s;
+}
+/* Only animated parts get fill-box: shapes that carry their own rotate(a cx cy) attribute must keep
+   view-box coordinates, or their rotation centre moves and they land elsewhere. */
+.bm-pet .pet-figure,
+.bm-pet .pet-head,
+.bm-pet .pet-tail,
+.bm-pet .pet-paw,
+.bm-pet .pet-eyes-open,
+.bm-pet .pet-zzz,
+.bm-pet .pet-bubble,
+.bm-pet .pet-sparkles path,
+.bm-pet .pet-sweat,
+.bm-pet .pet-heart {
+  transform-box: fill-box;
+}
+.bm-pet .pet-shadow {
+  fill: rgb(0 0 0 / 0.22);
+}
+.bm-pet .pet-blush {
+  opacity: 0.45;
+}
+.bm-pet .pet-zzz text {
+  fill: var(--muted-foreground);
+  font-weight: 700;
+}
+
+.bm-pet .pet-eyes-closed,
+.bm-pet .pet-eyes-happy,
+.bm-pet .pet-brows,
+.bm-pet .pet-mouth-open,
+.bm-pet .pet-zzz,
+.bm-pet .pet-bubble,
+.bm-pet .pet-sparkles,
+.bm-pet .pet-sweat,
+.bm-pet .pet-heart {
+  display: none;
+}
+
+.bm-pet .pet-figure {
+  transform-origin: 50% 100%;
+  animation: bm-breathe 3.2s ease-in-out infinite;
+}
+.bm-pet .pet-eyes-open {
+  transform-origin: 50% 50%;
+  animation: bm-blink 5.5s linear infinite;
+}
+.bm-pet .pet-tail {
+  transform-origin: 0% 100%;
+  animation: bm-tail 2.4s ease-in-out infinite;
+}
+.bm-pet .pet-head {
+  transform-origin: 50% 90%;
+}
+
+/* sleep */
+.bm-pet[data-mood='sleep'] .pet-eyes-open,
+.bm-pet[data-mood='tired'] .pet-eyes-open {
+  display: none;
+}
+.bm-pet[data-mood='sleep'] .pet-eyes-closed,
+.bm-pet[data-mood='tired'] .pet-eyes-closed,
+.bm-pet[data-mood='sleep'] .pet-zzz {
+  display: inline;
+}
+.bm-pet[data-mood='sleep'] .pet-figure {
+  animation-duration: 4.6s;
+}
+.bm-pet[data-mood='sleep'] .pet-tail {
+  animation: none;
+}
+.bm-pet[data-mood='sleep'] .pet-zzz {
+  animation: bm-zzz 3s ease-in-out infinite;
+}
+
+/* tired: droopy head, slow breath */
+.bm-pet[data-mood='tired'] .pet-head {
+  transform: rotate(7deg) translateY(1.2px);
+}
+.bm-pet[data-mood='tired'] .pet-figure {
+  animation-duration: 5s;
+}
+.bm-pet[data-mood='tired'] .pet-tail {
+  animation-duration: 5s;
+}
+
+/* work: paws run, head bobs, tail wags; faster with more agents */
+.bm-pet[data-mood='work'] .pet-paw {
+  transform-origin: 50% 100%;
+  animation: bm-paw var(--bm-cycle) ease-in-out infinite;
+}
+.bm-pet[data-mood='work'] .pet-paw-r {
+  animation-delay: calc(var(--bm-cycle) / -2);
+}
+.bm-pet[data-mood='work'] .pet-head {
+  animation: bm-bob var(--bm-cycle) ease-in-out infinite;
+}
+.bm-pet[data-mood='work'] .pet-tail {
+  animation-duration: calc(var(--bm-cycle) * 2);
+}
+.bm-pet[data-mood='work'] .pet-figure {
+  animation: none;
+}
+
+/* alert: an agent waits for the user */
+.bm-pet[data-mood='alert'] .pet-bubble,
+.bm-pet[data-mood='alert'] .pet-mouth-open {
+  display: inline;
+}
+.bm-pet[data-mood='alert'] .pet-mouth {
+  display: none;
+}
+.bm-pet[data-mood='alert'] .pet-figure {
+  animation: bm-jump 1.4s ease-in-out infinite;
+}
+.bm-pet[data-mood='alert'] .pet-bubble {
+  transform-origin: 0% 100%;
+  animation: bm-pop 1.4s ease-in-out infinite;
+}
+.bm-pet[data-mood='alert'] .pet-tail {
+  animation-duration: 0.5s;
+}
+
+/* happy: an agent just finished */
+.bm-pet[data-mood='happy'] .pet-eyes-open,
+.bm-pet[data-mood='happy'] .pet-mouth {
+  display: none;
+}
+.bm-pet[data-mood='happy'] .pet-eyes-happy,
+.bm-pet[data-mood='happy'] .pet-mouth-open,
+.bm-pet[data-mood='happy'] .pet-sparkles {
+  display: inline;
+}
+.bm-pet[data-mood='happy'] .pet-figure {
+  animation: bm-jump 0.9s ease-in-out infinite;
+}
+.bm-pet[data-mood='happy'] .pet-sparkles path {
+  transform-origin: 50% 50%;
+  animation: bm-sparkle 0.9s ease-in-out infinite;
+}
+.bm-pet[data-mood='happy'] .pet-sparkles path:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.bm-pet[data-mood='happy'] .pet-sparkles path:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.bm-pet[data-mood='happy'] .pet-tail {
+  animation-duration: 0.4s;
+}
+
+/* worried: an agent failed */
+.bm-pet[data-mood='worried'] .pet-brows,
+.bm-pet[data-mood='worried'] .pet-sweat {
+  display: inline;
+}
+.bm-pet[data-mood='worried'] .pet-head {
+  animation: bm-tilt 2.2s ease-in-out infinite;
+}
+.bm-pet[data-mood='worried'] .pet-sweat {
+  animation: bm-sweat 2.2s ease-in infinite;
+}
+
+/* petted: a heart floats up once */
+.bm-pet[data-petted] .pet-heart {
+  display: inline;
+  transform-origin: 50% 100%;
+  animation: bm-heart 1.1s ease-out forwards;
+}
+.bm-pet[data-petted] .pet-eyes-open {
+  display: none;
+}
+.bm-pet[data-petted] .pet-eyes-happy {
+  display: inline;
+}
+
+.bm-pet[data-paused] *,
+.bm-pet[data-paused] {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bm-pet *,
+  .bm-pet {
+    animation: none !important;
+  }
+}
+
+.bm-photo {
+  animation: bm-fade-in 0.45s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bm-photo {
+    animation: none;
+  }
+}
+@keyframes bm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes bm-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.015, 1.03);
+  }
+}
+@keyframes bm-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes bm-tail {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+@keyframes bm-paw {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.2px);
+  }
+}
+@keyframes bm-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(1px);
+  }
+}
+@keyframes bm-jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-6px);
+  }
+  45% {
+    transform: translateY(0);
+  }
+  55% {
+    transform: translateY(-1.5px);
+  }
+  65% {
+    transform: translateY(0);
+  }
+}
+@keyframes bm-pop {
+  0%,
+  100% {
+    transform: scale(0.92);
+  }
+  25% {
+    transform: scale(1.06);
+  }
+}
+@keyframes bm-zzz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 2px);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(3px, -4px);
+  }
+}
+@keyframes bm-sparkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes bm-sweat {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+@keyframes bm-tilt {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(-8deg);
+  }
+}
+@keyframes bm-heart {
+  0% {
+    opacity: 0;
+    transform: translateY(2px) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-7px) scale(1);
+  }
+}

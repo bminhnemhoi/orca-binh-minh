@@ -1,4 +1,5 @@
 import { StatsPane } from '../stats/StatsPane'
+import { BinhMinhCornerPane } from '../binhminh-corner/settings/BinhMinhCornerPane'
 import { AppearancePane } from './AppearancePane'
 import { InputPane } from './InputPane'
 import { NotificationsPane } from './NotificationsPane'
@@ -108,6 +109,20 @@ export function renderStatsSettingsSection(context: SettingsRenderContext): Reac
       searchEntries={navigation.getSectionSearchEntries('stats')}
     >
       {view.isSectionMounted('stats') ? <StatsPane /> : null}
+    </SettingsSection>
+  )
+}
+
+export function renderCornerSettingsSection(context: SettingsRenderContext): React.JSX.Element {
+  const { navigation, view } = context
+  return (
+    <SettingsSection
+      id="corner"
+      title="Góc Bình Minh"
+      description="Thú cưng, khung ảnh, hạn mức, CPU/RAM và lời nhắc ở cuối sidebar phải."
+      searchEntries={navigation.getSectionSearchEntries('corner')}
+    >
+      {view.isSectionMounted('corner') ? <BinhMinhCornerPane /> : null}
     </SettingsSection>
   )
 }

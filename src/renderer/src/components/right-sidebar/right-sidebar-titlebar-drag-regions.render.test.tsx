@@ -60,6 +60,10 @@ vi.mock('@/hooks/useShortcutLabel', () => ({
   useShortcutLabel: (actionId: string) => actionId
 }))
 
+// Why: the corner reads rate limits and agent state this store stub does not model.
+vi.mock('../binhminh-corner/BinhMinhCorner', () => ({ BinhMinhCorner: () => null }))
+vi.mock('../binhminh-corner/CornerAttentionSignals', () => ({ CornerAttentionSignals: () => null }))
+
 vi.mock('@/store', async () => {
   const React = await vi.importActual<typeof import('react')>('react') // eslint-disable-line @typescript-eslint/consistent-type-imports -- vi.importActual requires inline import()
   const getSnapshot = (selector: (state: Record<string, unknown>) => unknown): unknown => {

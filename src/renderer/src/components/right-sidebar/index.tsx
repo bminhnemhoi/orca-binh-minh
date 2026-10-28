@@ -16,6 +16,7 @@ import {
 } from './right-sidebar-width'
 import { translate } from '@/i18n/i18n'
 import { RightSidebarPanelContent } from './right-sidebar-panel-content'
+import { CornerAttentionSignals } from '../binhminh-corner/CornerAttentionSignals'
 import { useMeasuredWidth } from './right-sidebar-measured-width'
 import {
   isPairedWebClientWindow,
@@ -144,6 +145,7 @@ function RightSidebarInner(): React.JSX.Element {
         rightSidebarOpen ? 'overflow-visible' : 'overflow-hidden'
       )}
     >
+      <CornerAttentionSignals />
       {/* Panel content area */}
       <div className="flex flex-col flex-1 min-w-0 bg-sidebar overflow-hidden">
         {activityBarPosition === 'top' ? (

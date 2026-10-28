@@ -3,9 +3,10 @@ import { getInputPaneSearchEntries } from '@/components/settings/input-search'
 import { getNotificationsPaneSearchEntries } from '@/components/settings/notifications-search'
 import { getShortcutsPaneSearchEntries } from '@/components/settings/shortcuts-search'
 import { getStatsPaneSearchEntries } from '@/components/stats/stats-search'
+import { getCornerPaneSearchEntries } from '@/components/binhminh-corner/settings/corner-search'
 import { translate } from '@/i18n/i18n'
 import type { SettingsNavSection } from '@/lib/settings-navigation-types'
-import { BarChart3, Bell, Keyboard, Palette, TextCursorInput } from 'lucide-react'
+import { BarChart3, Bell, Keyboard, Palette, Sparkles, TextCursorInput } from 'lucide-react'
 import type { SettingsNavigationBuildOptions } from './settings-navigation-build-options'
 
 export function buildInterfaceSettingsSections({
@@ -84,6 +85,14 @@ export function buildInterfaceSettingsSections({
       ),
       icon: BarChart3,
       searchEntries: getStatsPaneSearchEntries(),
+      group: 'interface'
+    },
+    {
+      id: 'corner',
+      title: 'Góc Bình Minh',
+      description: 'Thú cưng, khung ảnh, hạn mức, CPU/RAM và lời nhắc ở cuối sidebar phải.',
+      icon: Sparkles,
+      searchEntries: getCornerPaneSearchEntries(),
       group: 'interface'
     }
   ]
