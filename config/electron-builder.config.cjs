@@ -206,6 +206,8 @@ module.exports = {
     '!out/node-runtime-cache{,/**/*}',
     '!config{,/**/*}',
     '!docs{,/**/*}',
+    // Why: personal build/update scripts and notes for this fork, not app runtime.
+    '!binhminh{,/**/*}',
     '!mobile{,/**/*}',
     '!native{,/**/*}',
     '!skills{,/**/*}',
