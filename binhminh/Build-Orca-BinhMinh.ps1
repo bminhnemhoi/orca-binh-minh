@@ -18,6 +18,9 @@ $freeGb = (Get-PSDrive D).Free / 1GB
 if ($freeGb -lt 3) { throw ("O D chi con {0:N1} GB trong; can it nhat 3 GB." -f $freeGb) }
 
 $env:NODE_OPTIONS = '--max-old-space-size=6144'
+# Why Continue: PowerShell 5.1 turns a native tool's stderr into errors when output is redirected,
+# and pnpm/electron-builder log progress there. Failures are caught by $LASTEXITCODE instead.
+$ErrorActionPreference = 'Continue'
 if (-not $SkipTypecheck) { pnpm run typecheck; if ($LASTEXITCODE) { throw 'Typecheck that bai.' } }
 foreach ($step in 'build:relay', 'build:cli', 'build:electron-vite', 'verify:built-skills-cli',
     'build:web-from-renderer', 'build:mobile-web', 'build:native', 'ensure:electron-runtime') {
@@ -26,6 +29,7 @@ foreach ($step in 'build:relay', 'build:cli', 'build:electron-vite', 'verify:bui
 if (Test-Path 'dist\win-unpacked') { Remove-Item 'dist\win-unpacked' -Recurse -Force }
 pnpm exec electron-builder --config config/electron-builder.config.cjs --win --dir
 if ($LASTEXITCODE) { throw 'Dong goi that bai.' }
+$ErrorActionPreference = 'Stop'
 
 $name = 'binhminh-{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmm'), $commit
 $target = Join-Path $releases "$name\win-unpacked"
