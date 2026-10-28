@@ -39,6 +39,25 @@ export const ANTIGRAVITY_USAGE_TIMEOUT_MS = 30_000
 // Before agy 1.1.11, `/usage` in print mode spends a model turn (agy's bundled changelog).
 export const ANTIGRAVITY_MIN_USAGE_VERSION = '1.1.11'
 
+/**
+ * Why a per-read log file: agy has no `whoami` (antigravity-cli#1069), and its auth log line is the
+ * only headless source of the signed-in email. The file is private to one quota read and deleted.
+ * Verified on agy 1.4.9: the read still spends nothing and the user's own cli.log is untouched.
+ */
+export const ANTIGRAVITY_LOG_FILE_FLAG = '--log-file'
+export const ANTIGRAVITY_MIN_LOG_FILE_VERSION = '1.4.9'
+
+const SIGNED_IN_EMAIL = /authenticated successfully as ([^\s,]+@[^\s,]+)/g
+
+/** The last account agy reported signing in as, or null when the log has none. */
+export function parseAntigravityAccountEmail(log: string): string | null {
+  let email: string | null = null
+  for (const match of log.matchAll(SIGNED_IN_EMAIL)) {
+    email = match[1] ?? email
+  }
+  return email ? email.toLowerCase() : null
+}
+
 /** The version probe; free in every sense — no conversation, no quota. */
 export const ANTIGRAVITY_VERSION_ARGS: readonly string[] = ['--version']
 

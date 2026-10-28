@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchAntigravityRateLimits,
-  resetAntigravityUsageSupportForTests
+  resetAntigravityUsageSupportForTests,
+  type AntigravityAccountLog
 } from './antigravity-usage-fetcher'
-import { ANTIGRAVITY_USAGE_ARGS, ANTIGRAVITY_VERSION_ARGS } from './antigravity-usage-command'
+import {
+  ANTIGRAVITY_LOG_FILE_FLAG,
+  ANTIGRAVITY_USAGE_ARGS,
+  ANTIGRAVITY_VERSION_ARGS
+} from './antigravity-usage-command'
 import type { ProcessResult } from '../../shared/child-process/process-spec'
 
 const USAGE_ENVELOPE = JSON.stringify({
@@ -42,6 +47,7 @@ function harness(
     runCommand?: ReturnType<typeof vi.fn>
     program?: string | null
     env?: NodeJS.ProcessEnv
+    accountLog?: AntigravityAccountLog
   } = {}
 ) {
   // Why the per-call split: the fetcher probes `--version` before the quota read, and a fixture
@@ -73,6 +79,7 @@ function harness(
         runCommand: runCommand as never,
         resolveCommand,
         resolveEnvironment,
+        ...(options.accountLog ? { accountLog: options.accountLog } : {}),
         platform: 'darwin',
         now: () => 1_700_000_000_000
       })
@@ -418,5 +425,65 @@ describe('quota read safety and diagnostic precedence', () => {
     expect((await h.fetch()).status).toBe('unavailable')
     expect((await h.fetch()).status).toBe('ok')
     expect(runCommand).toHaveBeenCalledTimes(3)
+  })
+
+  describe('signed-in account email', () => {
+    function accountLog(contents: string | null) {
+      return {
+        createPath: vi.fn(() => '/tmp/orca-agy-usage-test.log'),
+        read: vi.fn(async () => contents),
+        remove: vi.fn(async () => {})
+      }
+    }
+
+    it('reads the email from a private agy log on agy 1.4.9 and deletes the log', async () => {
+      const log = accountLog(
+        'I1029 server_oauth.go:229] OAuth: authenticated successfully as Minh.A@Gmail.com\n'
+      )
+      const h = harness({
+        versionResult: processResult({ stdout: 'agy version 1.4.9\n' }),
+        result: processResult({ stdout: USAGE_ENVELOPE }),
+        accountLog: log
+      })
+      const result = await h.fetch()
+
+      expect(result.accountEmail).toBe('minh.a@gmail.com')
+      expect(h.runCommand.mock.calls[1]![0].args).toEqual([
+        ...ANTIGRAVITY_USAGE_ARGS,
+        ANTIGRAVITY_LOG_FILE_FLAG,
+        '/tmp/orca-agy-usage-test.log'
+      ])
+      expect(log.remove).toHaveBeenCalledWith('/tmp/orca-agy-usage-test.log')
+    })
+
+    it('reports no email when the log has no sign-in line', async () => {
+      const result = await harness({
+        versionResult: processResult({ stdout: 'agy version 1.4.9\n' }),
+        result: processResult({ stdout: USAGE_ENVELOPE }),
+        accountLog: accountLog('I1029 nothing about auth\n')
+      }).fetch()
+      expect(result.status).toBe('ok')
+      expect(result.accountEmail).toBeNull()
+    })
+
+    it('still deletes the log when agy cannot be started', async () => {
+      const log = accountLog(null)
+      const runCommand = vi
+        .fn()
+        .mockResolvedValueOnce(processResult({ stdout: 'agy version 1.4.9\n' }))
+        .mockRejectedValueOnce(new Error('EACCES'))
+      const result = await harness({ runCommand, accountLog: log }).fetch()
+      expect(result.usageMetadata?.failureKind).toBe('cli-unavailable')
+      expect(log.remove).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not pass --log-file to an agy older than 1.4.9', async () => {
+      const log = accountLog('OAuth: authenticated successfully as a@b.com')
+      const h = harness({ result: processResult({ stdout: USAGE_ENVELOPE }), accountLog: log })
+      const result = await h.fetch()
+      expect(h.runCommand.mock.calls[1]![0].args).toEqual(ANTIGRAVITY_USAGE_ARGS)
+      expect(result.accountEmail).toBeNull()
+      expect(log.createPath).not.toHaveBeenCalled()
+    })
   })
 })

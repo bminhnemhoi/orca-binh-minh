@@ -1,16 +1,23 @@
+import { randomUUID } from 'node:crypto'
+import { readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { runProcess } from '../../shared/child-process/run-process'
 import { hasReachedAppVersion, parseCliVersion } from '../../shared/app-version'
 import { resolveCommandOnLocalPath } from '../ipc/command-path-resolver'
 import { resolveLoginShellEnvironment } from '../startup/login-shell-environment'
 import type { ProviderRateLimits, UsageRateLimitFailureKind } from '../../shared/rate-limit-types'
 import {
+  ANTIGRAVITY_LOG_FILE_FLAG,
+  ANTIGRAVITY_MIN_LOG_FILE_VERSION,
   ANTIGRAVITY_MIN_USAGE_VERSION,
   ANTIGRAVITY_USAGE_ARGS,
   ANTIGRAVITY_USAGE_MAX_OUTPUT_BYTES,
   ANTIGRAVITY_USAGE_TIMEOUT_MS,
   ANTIGRAVITY_VERSION_ARGS,
   ANTIGRAVITY_VERSION_TIMEOUT_MS,
-  antigravityCommandName
+  antigravityCommandName,
+  parseAntigravityAccountEmail
 } from './antigravity-usage-command'
 import { parseAntigravityUsageStdout, stdoutShowsModelTurn } from './antigravity-usage-response'
 
@@ -42,9 +49,23 @@ export function resetAntigravityUsageSupportForTests(): void {
   usageCommandUnsupported = false
 }
 
+/** Where the quota read's private agy log goes, so the signed-in email can be read back. */
+export type AntigravityAccountLog = {
+  createPath: () => string
+  read: (path: string) => Promise<string | null>
+  remove: (path: string) => Promise<void>
+}
+
+const defaultAccountLog: AntigravityAccountLog = {
+  createPath: () => join(tmpdir(), `orca-agy-usage-${randomUUID()}.log`),
+  read: (path) => readFile(path, 'utf8').catch(() => null),
+  remove: (path) => rm(path, { force: true }).catch(() => {})
+}
+
 export type AntigravityUsageDependencies = {
   /** Injected so tests exercise the classification without spawning agy. */
   runCommand?: typeof runProcess
+  accountLog?: AntigravityAccountLog
   resolveCommand?: typeof resolveCommandOnLocalPath
   resolveEnvironment?: () => Promise<NodeJS.ProcessEnv>
   platform?: NodeJS.Platform
@@ -160,18 +181,33 @@ export async function fetchAntigravityRateLimits(
     )
   }
 
+  // Why gate on version: an older agy rejects an unknown flag, which would cost the quota reading.
+  const accountLog = hasReachedAppVersion(version, ANTIGRAVITY_MIN_LOG_FILE_VERSION)
+    ? (options.accountLog ?? defaultAccountLog)
+    : null
+  const logPath = accountLog?.createPath() ?? null
   let result: Awaited<ReturnType<typeof runProcess>>
+  let accountEmail: string | null = null
   try {
     result = await run({
       program,
-      args: ANTIGRAVITY_USAGE_ARGS,
+      args: logPath
+        ? [...ANTIGRAVITY_USAGE_ARGS, ANTIGRAVITY_LOG_FILE_FLAG, logPath]
+        : ANTIGRAVITY_USAGE_ARGS,
       env,
       timeoutMs: ANTIGRAVITY_USAGE_TIMEOUT_MS,
       maxOutputBytes: ANTIGRAVITY_USAGE_MAX_OUTPUT_BYTES,
       signal: options.signal
     })
+    if (accountLog && logPath) {
+      accountEmail = parseAntigravityAccountEmail((await accountLog.read(logPath)) ?? '')
+    }
   } catch (error) {
     return failed(spawnFailureMessage(error), 'cli-unavailable', now())
+  } finally {
+    if (accountLog && logPath) {
+      await accountLog.remove(logPath)
+    }
   }
 
   if (result.timedOut) {
@@ -223,6 +259,7 @@ export async function fetchAntigravityRateLimits(
     session: reading.session,
     weekly: reading.weekly,
     buckets: reading.buckets.map(({ id: _id, ...bucket }) => bucket),
+    accountEmail,
     updatedAt: now(),
     error: null,
     status: 'ok',

@@ -7,6 +7,11 @@ import { getUsageRosterRowState } from '../status-bar/usage-roster-row-state'
 import { getTightestUsageSection } from '../status-bar/UsageRosterPanel'
 import { Button } from '../ui/button'
 import { DeckAccountUsage } from './DeckAccountUsage'
+import { listLiveAntigravityTabIds } from '@/lib/antigravity-live-panes'
+import {
+  forgetAntigravityKnownAccount,
+  orderAntigravityKnownAccounts
+} from '../../../../shared/antigravity-known-accounts'
 import type { DeckAccountAgent } from './deck-account-agent-launch'
 import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
 
@@ -35,6 +40,15 @@ export function DeckAgentAccountPicker({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const busyRef = useRef(false)
+  // Why a confirmation step for Antigravity only: agy has one Google sign-in per machine, so
+  // choosing another account signs every agy out. undefined = no switch pending, null = new account.
+  const [pendingSwitch, setPendingSwitch] = useState<string | null | undefined>(undefined)
+  const liveAntigravityTabs = useAppStore((s) =>
+    agent === 'antigravity' ? listLiveAntigravityTabIds(s).length : 0
+  )
+  const antigravityEmail =
+    agent === 'antigravity' ? (limits.antigravity?.accountEmail ?? null) : null
+  const antigravityId = (email: string): string => `agy:${email}`
   const activeId =
     agent === 'claude'
       ? (settings?.activeClaudeManagedAccountIdsByRuntime?.host ??
@@ -42,10 +56,19 @@ export function DeckAgentAccountPicker({
       : agent === 'codex'
         ? (settings?.activeCodexManagedAccountIdsByRuntime?.host ??
           settings?.activeCodexManagedAccountId)
-        : null
-  const accounts =
-    !local || agent === 'antigravity'
-      ? []
+        : antigravityEmail
+          ? antigravityId(antigravityEmail)
+          : null
+  const accounts = !local
+    ? []
+    : agent === 'antigravity'
+      ? orderAntigravityKnownAccounts(settings?.antigravityKnownAccounts, antigravityEmail).map(
+          (email) => ({
+            id: antigravityId(email),
+            label: email,
+            detail: email === antigravityEmail ? 'Signed in to agy' : 'Switch to this account'
+          })
+        )
       : agent === 'claude'
         ? (settings?.claudeManagedAccounts ?? [])
             .filter((a) => a.managedAuthRuntime !== 'wsl')
@@ -59,7 +82,8 @@ export function DeckAgentAccountPicker({
             }))
   const usageForAccount = (id: string | null): ProviderRateLimits | null => {
     if (agent === 'antigravity') {
-      return limits.antigravity
+      // Why only the signed-in account: agy reports quota for the one account it is signed in to.
+      return id === null || id === activeId ? limits.antigravity : null
     }
     if (id === null || id === (activeId ?? null)) {
       return limits[agent]
@@ -128,13 +152,37 @@ export function DeckAgentAccountPicker({
       return
     }
     previewAccount(id)
+    if (agent === 'antigravity' && id !== null && id !== activeId) {
+      setPendingSwitch(id.slice('agy:'.length))
+      return
+    }
     if (accountNeedsSignIn(usageForAccount(id))) {
       return
     }
     busyRef.current = true
     setBusy(true)
-    onLaunch(id ?? undefined)
+    // Why no id for Antigravity: agy picks its own account; an account env var would be recorded as
+    // a pinned Codex pane (spawn-commit-persist.ts).
+    onLaunch(agent === 'antigravity' ? undefined : (id ?? undefined))
   }
+  const confirmAntigravitySwitch = (): void => {
+    if (busyRef.current || liveAntigravityTabs > 0) {
+      return
+    }
+    busyRef.current = true
+    setBusy(true)
+    onLaunch(undefined, true)
+  }
+  const forgetAntigravityAccount = (email: string): void => {
+    void useAppStore.getState().updateSettings({
+      antigravityKnownAccounts: forgetAntigravityKnownAccount(
+        settings?.antigravityKnownAccounts,
+        email
+      )
+    })
+    setPendingSwitch(undefined)
+  }
+  const hideDefaultRow = agent === 'antigravity' && local && antigravityEmail !== null
   const previewLabel =
     accounts.find((a) => a.id === selectedId)?.label ??
     (agent === 'antigravity' ? 'Current agy account' : 'Orca default')
@@ -146,14 +194,16 @@ export function DeckAgentAccountPicker({
             <AgentIcon agent={agent} size={18} />
             {getAgentLabel(agent)}
           </h3>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Manage accounts"
-            onClick={openAccounts}
-          >
-            <Settings />
-          </Button>
+          {agent === 'antigravity' ? null : (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Manage accounts"
+              onClick={openAccounts}
+            >
+              <Settings />
+            </Button>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           {local
@@ -166,17 +216,21 @@ export function DeckAgentAccountPicker({
           aria-label="Launch account"
         >
           {[
-            {
-              id: null,
-              label: !local
-                ? 'Workspace host account'
-                : agent === 'antigravity'
-                  ? 'Current agy account'
-                  : 'Orca default',
-              detail: null
-            },
+            ...(hideDefaultRow
+              ? []
+              : [
+                  {
+                    id: null,
+                    label: !local
+                      ? 'Workspace host account'
+                      : agent === 'antigravity'
+                        ? 'Current agy account'
+                        : 'Orca default',
+                    detail: null
+                  }
+                ]),
             ...accounts
-          ].map((account) => {
+          ].map((account: { id: string | null; label: string; detail?: string | null }) => {
             const selected = selectedId === account.id
             const usage = usageForAccount(account.id)
             const tightest = usage ? getTightestUsageSection(usage) : null
@@ -216,9 +270,57 @@ export function DeckAgentAccountPicker({
             )
           })}
         </div>
-        {local && agent === 'antigravity' ? (
+        {local && agent === 'antigravity' && pendingSwitch !== undefined ? (
+          <div className="space-y-2 rounded-md border border-border p-2" role="alert">
+            <p className="text-xs">
+              {pendingSwitch ? `Switch agy to ${pendingSwitch}?` : 'Sign in to another account?'}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              agy keeps one Google sign-in for this computer. Orca signs agy out, then agy opens
+              Google sign-in in your browser{pendingSwitch ? `: choose ${pendingSwitch} there` : ''}
+              . Every agy uses the new account afterwards.
+            </p>
+            {liveAntigravityTabs > 0 ? (
+              <p className="text-[11px] text-destructive">
+                Close the {liveAntigravityTabs} open Antigravity{' '}
+                {liveAntigravityTabs === 1 ? 'tab' : 'tabs'} first.
+              </p>
+            ) : null}
+            <div className="flex items-center justify-between gap-2">
+              {pendingSwitch ? (
+                <Button
+                  variant="link"
+                  size="xs"
+                  disabled={busy}
+                  onClick={() => forgetAntigravityAccount(pendingSwitch)}
+                >
+                  Forget
+                </Button>
+              ) : (
+                <span />
+              )}
+              <span className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  disabled={busy}
+                  onClick={() => setPendingSwitch(undefined)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="xs"
+                  disabled={busy || liveAntigravityTabs > 0}
+                  onClick={confirmAntigravitySwitch}
+                >
+                  {pendingSwitch ? 'Switch' : 'Sign in'}
+                </Button>
+              </span>
+            </div>
+          </div>
+        ) : local && agent === 'antigravity' && accounts.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            agy manages this login. Multiple saved accounts are not supported yet.
+            Orca remembers each Google account agy signs in with.
           </p>
         ) : local && accounts.length === 0 ? (
           <p className="text-xs text-muted-foreground">No saved accounts yet.</p>
@@ -233,14 +335,12 @@ export function DeckAgentAccountPicker({
             variant="ghost"
             size="xs"
             disabled={busy}
-            onClick={
-              agent === 'antigravity' && local ? () => onLaunch(undefined, true) : openAccounts
-            }
+            onClick={agent === 'antigravity' && local ? () => setPendingSwitch(null) : openAccounts}
           >
             <Plus />
-            {agent === 'antigravity' ? 'Sign in' : 'Add account'}
+            {agent === 'antigravity' && !antigravityEmail ? 'Sign in' : 'Add account'}
           </Button>
-          {selectedId ? (
+          {selectedId && agent !== 'antigravity' ? (
             <Button
               variant={signedOut ? 'default' : 'link'}
               size="xs"

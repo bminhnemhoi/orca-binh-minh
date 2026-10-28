@@ -295,12 +295,15 @@ export function DeckCreateBar(): React.JSX.Element {
                 agent={accountAgent}
                 worktreeId={worktreeId}
                 accountLabel={
-                  chosenAccount.id
-                    ? ((accountAgent === 'claude' || accountAgent === 'claude-agent-teams'
-                        ? useAppStore.getState().settings?.claudeManagedAccounts
-                        : useAppStore.getState().settings?.codexManagedAccounts
-                      )?.find((a) => a.id === chosenAccount.id)?.email ?? 'Chosen account')
-                    : 'Workspace default account'
+                  accountAgent === 'antigravity'
+                    ? (useAppStore.getState().rateLimits.antigravity?.accountEmail ??
+                      'Current agy account')
+                    : chosenAccount.id
+                      ? ((accountAgent === 'claude' || accountAgent === 'claude-agent-teams'
+                          ? useAppStore.getState().settings?.claudeManagedAccounts
+                          : useAppStore.getState().settings?.codexManagedAccounts
+                        )?.find((a) => a.id === chosenAccount.id)?.email ?? 'Chosen account')
+                      : 'Workspace default account'
                 }
                 onBack={() => {
                   if (

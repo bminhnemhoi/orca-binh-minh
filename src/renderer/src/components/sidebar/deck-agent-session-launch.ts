@@ -6,6 +6,8 @@ import { buildAiVaultResumeStartupForWorktree } from '@/lib/ai-vault-resume-comm
 import { activateAiVaultStructuredSession } from '@/lib/activate-ai-vault-structured-session'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
+import { buildAntigravitySignInCommand } from '@/lib/antigravity-sign-in-command'
+import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
 import { findOriginalAiVaultSessionPane } from '../right-sidebar/ai-vault-original-pane'
 import { resolveAiVaultSessionLaunchTarget } from '../right-sidebar/ai-vault-session-launch-target'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
@@ -48,7 +50,11 @@ export async function launchDeckAgentSession(args: {
         groupId,
         agent,
         effectiveAccountId ?? undefined,
-        args.login ? 'agy login' : undefined,
+        args.login && agent === 'antigravity'
+          ? buildAntigravitySignInCommand(
+              resolveAgentLaunchExecutionContext(state, { worktreeId }).queuedShell
+            )
+          : undefined,
         pane
       )
     }

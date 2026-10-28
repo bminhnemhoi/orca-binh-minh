@@ -84,6 +84,8 @@ export type ProviderRateLimits = {
   } | null
   /** Subscription plan tier for the active account (Codex `plan_type`, e.g. "plus"). */
   planType?: string | null
+  /** Email of the account the reading belongs to, when the provider reports it (Antigravity). */
+  accountEmail?: string | null
   /** Unix ms timestamp of the last successful data update. */
   updatedAt: number
   /** Human-readable error message, null when status is 'ok'. */
