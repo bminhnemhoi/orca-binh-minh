@@ -44,8 +44,19 @@ Set-Content $launcher $text -NoNewline -Encoding utf8
 
 $previousName = Split-Path (Split-Path (Split-Path $previous -Parent) -Parent) -Leaf
 $keep = @($name, $previousName)
+# Why check running processes: the user may still run an older build (e.g. never restarted after
+# the last install); deleting it would pull files out from under the live app.
+$running = @(Get-CimInstance Win32_Process -Filter "Name='Orca.exe'" | ForEach-Object { $_.ExecutablePath })
 Get-ChildItem $releases -Directory -Filter 'binhminh-*' | Where-Object { $keep -notcontains $_.Name } |
-    ForEach-Object { Write-Host "Xoa ban cu: $($_.Name)"; Remove-Item $_.FullName -Recurse -Force }
+    ForEach-Object {
+        $dir = $_.FullName + '\'
+        if ($running | Where-Object { $_ -and $_.StartsWith($dir, [StringComparison]::OrdinalIgnoreCase) }) {
+            Write-Host "Giu lai $($_.Name): Orca dang chay tu ban nay, se xoa o lan build sau."
+        } else {
+            Write-Host "Xoa ban cu: $($_.Name)"
+            Remove-Item $_.FullName -Recurse -Force
+        }
+    }
 
 Write-Host "Da cai $name (commit $commit). Ban du phong: $previous"
 Write-Host 'Thoat Orca (menu Orca > Quit) roi mo shortcut Orca Binh Minh.'
