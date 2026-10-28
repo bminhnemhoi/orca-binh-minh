@@ -400,6 +400,7 @@ describe('registerShellHandlers', () => {
     it.runIf(process.platform === 'win32')(
       'forwards WSL remote arguments with spaces through the Windows launcher shim',
       async () => {
+        Object.defineProperty(process, 'platform', { configurable: true, value: 'win32' })
         const workspacePath = '\\\\wsl.localhost\\Ubuntu Preview\\home\\Ada Lovelace\\project'
         const codeShim = 'C:\\Tools\\CODE.CMD'
         resolveCliCommandMock.mockReturnValueOnce(codeShim)

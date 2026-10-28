@@ -83,7 +83,7 @@ export async function prepareAccountSessionResume(
   }
   await mkdir(targetRoot, { recursive: true })
   const canonicalTargetRoot = await realpath(targetRoot)
-  if (canonicalTargetRoot !== resolve(targetRoot)) {
+  if (relative(resolve(targetRoot), canonicalTargetRoot) !== '') {
     throw new Error('The account session directory is redirected.')
   }
   const target = join(targetRoot, sessionRelative)
@@ -102,7 +102,7 @@ export async function prepareAccountSessionResume(
       throw new Error('The account session directory is redirected.')
     }
   }
-  if (resolve(target) !== source) {
+  if (relative(resolve(target), source) !== '') {
     try {
       await copySessionFileWithoutOverwrite(source, target)
     } catch (error) {

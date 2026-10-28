@@ -469,7 +469,7 @@ describe('RateLimitService', () => {
       expect.objectContaining({
         authPreparation: undefined,
         allowPtyFallback: false,
-        allowUsagePanelSupplement: true,
+        allowUsagePanelSupplement: process.platform !== 'win32',
         signal: expect.any(AbortSignal)
       })
     )

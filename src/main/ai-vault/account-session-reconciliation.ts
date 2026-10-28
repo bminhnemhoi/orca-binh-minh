@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Stats } from 'node:fs'
 import { link, lstat, mkdir, mkdtemp, realpath, rename, rm } from 'node:fs/promises'
-import { basename, join, resolve } from 'node:path'
+import { basename, join, relative, resolve } from 'node:path'
 import { copySessionFileWithoutOverwrite } from '../codex/codex-session-backfill-copy'
 import { consumeCompleteJsonlLines } from './session-scanner-jsonl-reader'
 import { readCodexConversation } from './codex-account-session-reconciliation'
@@ -126,7 +126,7 @@ export async function reconcileAccountSession(
 
   // Keep old branches outside scanned history so backups are not listed as sessions.
   await mkdir(backupRoot, { recursive: true })
-  if ((await realpath(backupRoot)) !== resolve(backupRoot)) {
+  if (relative(resolve(backupRoot), await realpath(backupRoot)) !== '') {
     throw new Error('The session backup directory is redirected.')
   }
   const backupDirectory = await mkdtemp(join(backupRoot, 'resume-'))

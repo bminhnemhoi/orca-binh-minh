@@ -89,6 +89,19 @@ function conversation(last: string, hour: number): string {
 }
 
 describe('account-scoped session preparation', () => {
+  it.skipIf(process.platform !== 'win32')(
+    'accepts Windows drive-letter casing without treating an owned directory as redirected',
+    async () => {
+      const account = settings.codexManagedAccounts[0]!
+      account.managedHomePath = account.managedHomePath.replace(/^[A-Z]:/, (drive) =>
+        drive.toLowerCase()
+      )
+      await expect(prepareAccountSessionResume(args(), settings)).resolves.toMatchObject({
+        substituteCodexHome: account.managedHomePath
+      })
+      expect(await readFile(target, 'utf8')).toBe(await readFile(source, 'utf8'))
+    }
+  )
   it('copies one transcript into the chosen account without changing selection', async () => {
     const selected = settings.activeCodexManagedAccountId
     expect(await prepareAccountSessionResume(args(), settings)).toEqual({
@@ -169,16 +182,31 @@ describe('account-scoped session preparation', () => {
       prepareAccountSessionResume({ ...args(), filePath: outside }, settings)
     ).rejects.toThrow('outside')
   })
-  it('refuses source symlinks and redirected target folders', async () => {
+  it('refuses source symlinks', async ({ skip }) => {
     const alias = join(dirname(source), 'alias.jsonl')
-    await symlink(source, alias)
+    try {
+      await symlink(source, alias)
+    } catch (error) {
+      if (
+        process.platform === 'win32' &&
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'EPERM'
+      ) {
+        skip('File symlinks require Windows Developer Mode or symlink privilege.')
+        return
+      }
+      throw error
+    }
     await expect(
       prepareAccountSessionResume({ ...args(), filePath: alias }, settings)
     ).rejects.toThrow('regular file')
+  })
+  it('refuses redirected target folders', async () => {
     await symlink(
       join(fixture.home, 'sessions'),
       join(settings.codexManagedAccounts[0]!.managedHomePath, 'sessions'),
-      'dir'
+      process.platform === 'win32' ? 'junction' : 'dir'
     )
     await expect(prepareAccountSessionResume(args(), settings)).rejects.toThrow('redirected')
   })

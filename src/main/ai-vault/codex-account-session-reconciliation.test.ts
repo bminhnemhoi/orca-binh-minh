@@ -31,6 +31,16 @@ afterEach(async () => {
 })
 
 describe('Codex account history reconciliation', () => {
+  it.skipIf(process.platform !== 'win32')(
+    'archives history with a lower-case drive letter',
+    async () => {
+      backups = backups.replace(/^[A-Z]:/, (drive) => drive.toLowerCase())
+      const latest = meta() + message('opening') + message('latest', 18)
+      await writeFile(source, latest)
+      expect(await reconcile()).toBe(true)
+      expect(await readFile(target, 'utf8')).toBe(latest)
+    }
+  )
   it.each([
     ['different session', meta('other') + message('opening') + message('new', 18)],
     ['different opening', meta() + message('unrelated') + message('new', 18)],

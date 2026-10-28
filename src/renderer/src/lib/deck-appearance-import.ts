@@ -1,3 +1,5 @@
+import { isLocalWindowsDesktopClient } from './desktop-window-chrome'
+
 const DECK_APPEARANCE_IMPORT_KEY = 'orca.deckAppearanceImported.v1'
 
 export async function importDeckAppearanceOnce(): Promise<void> {
@@ -28,7 +30,7 @@ export async function importDeckAppearanceOnce(): Promise<void> {
     sidebarWidth: 305,
     rightSidebarWidth: 348,
     rightSidebarOpen: true,
-    uiZoomLevel: 2.5
+    uiZoomLevel: isLocalWindowsDesktopClient() ? 0 : 2.5
   })
   localStorage.setItem(key, 'true')
 }

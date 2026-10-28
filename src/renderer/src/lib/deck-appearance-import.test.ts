@@ -26,6 +26,11 @@ afterEach(() => {
 })
 
 describe('Deck appearance import', () => {
+  it('uses native UI scale on Windows instead of the Linux desktop zoom preset', async () => {
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' })
+    await importDeckAppearanceOnce()
+    expect(saveUI).toHaveBeenCalledWith(expect.objectContaining({ uiZoomLevel: 0 }))
+  })
   it('enables mouse focus on an already imported profile without resetting appearance', async () => {
     localStorage.setItem('orca.deckAppearanceImported.v1:local-default', 'true')
     await importDeckAppearanceOnce()

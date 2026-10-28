@@ -113,7 +113,7 @@ describe('Claude account history reconciliation', () => {
   it('rejects a redirected backup folder', async () => {
     const outside = join(root, 'outside')
     await fs.mkdir(outside)
-    await fs.symlink(outside, backups, 'dir')
+    await fs.symlink(outside, backups, process.platform === 'win32' ? 'junction' : 'dir')
     await expect(reconcile()).rejects.toThrow('redirected')
     expect(await fs.readFile(target, 'utf8')).toBe(older)
     expect(await fs.readdir(outside)).toEqual([])
