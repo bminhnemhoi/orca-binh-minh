@@ -39,8 +39,14 @@ export function QuotaBurnChart({
   const x = (t: number): number => ((Math.min(Math.max(t, start), end) - start) / pace.lengthMs) * W
   const y = (remaining: number): number =>
     TOP + (1 - Math.min(Math.max(remaining, 0), 100) / 100) * (PLOT_H - TOP)
+  const recorded = history
+    .filter((p) => p.t >= start && p.t < now)
+    .map((p) => ({ t: p.t, rem: 100 - p.used }))
+  // Why prepend the window start: a quota window begins with nothing used, so the line is anchored
+  // there even before Orca has recorded any samples of this window.
   const actual = [
-    ...history.filter((p) => p.t >= start && p.t < now).map((p) => ({ t: p.t, rem: 100 - p.used })),
+    ...(recorded.length === 0 || recorded[0]!.t > start ? [{ t: start, rem: 100 }] : []),
+    ...recorded,
     { t: now, rem: 100 - used }
   ]
   const line = actual

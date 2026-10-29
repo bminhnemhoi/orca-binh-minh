@@ -11,7 +11,7 @@ import { CornerReminders } from './CornerReminders'
 import { CornerSystemCard } from './CornerSystemCard'
 import { loadCornerPhotoUrl } from './corner-photo-cache'
 import { readQuotaSeries } from './quota-history'
-import { buildQuotaRows, lowestQuotaLeft } from './quota-rows'
+import { buildQuotaRows, lowestQuotaLabel, lowestQuotaLeft } from './quota-rows'
 import { useCornerSettings } from './use-corner-settings'
 import { useHostLoad } from './use-host-load'
 import { useNow } from './use-window-attention'
@@ -86,6 +86,7 @@ export function BinhMinhCorner(): React.JSX.Element | null {
             waiting={counts.attention}
             finished={counts.done}
             lowestQuotaLeft={lowestQuotaLeft(quotaRows)}
+            quotaLabel={lowestQuotaLabel(quotaRows)}
             attentionTarget={counts.attention > 0 ? attentionTarget : null}
           />
         ) : null}

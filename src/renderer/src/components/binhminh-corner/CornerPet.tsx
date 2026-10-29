@@ -30,6 +30,7 @@ export function CornerPet({
   waiting,
   finished,
   lowestQuotaLeft,
+  quotaLabel,
   attentionTarget
 }: {
   settings: BinhMinhCornerSettings
@@ -38,6 +39,8 @@ export function CornerPet({
   /** Finished-but-unseen agents; a rise makes the pet celebrate. */
   finished: number
   lowestQuotaLeft: number | null
+  /** Names the quota running lowest, for the tired line. */
+  quotaLabel: string | null
   attentionTarget: DashboardRevealAgentArgs | null
 }): React.JSX.Element {
   const [webglFailed, setWebglFailed] = useState(false)
@@ -66,7 +69,12 @@ export function CornerPet({
     hour,
     lateNightFromHour: settings.lateNightFromHour
   })
-  const status = describePetMood(result, { working, waiting, errored: 0 }, settings.pet.name)
+  const status = describePetMood(
+    result,
+    { working, waiting, errored: 0 },
+    settings.pet.name,
+    quotaLabel
+  )
   const line = summary(working, waiting, finished)
   const jump = result.mood === 'alert' && attentionTarget !== null
 

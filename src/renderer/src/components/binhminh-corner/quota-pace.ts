@@ -126,6 +126,18 @@ export function formatRunOutTime(ms: number, now: number): string {
     : `${clock} ${pad(date.getDate())}/${pad(date.getMonth() + 1)}`
 }
 
+/** "28p", "4g59p", "3n22g": for tight row headers. */
+export function formatDurationCompact(ms: number): string {
+  const minutes = Math.max(0, Math.round(ms / 60_000))
+  const days = Math.floor(minutes / 1440)
+  const hours = Math.floor((minutes % 1440) / 60)
+  const mins = minutes % 60
+  if (days > 0) {
+    return `${days}n${hours ? `${hours}g` : ''}`
+  }
+  return hours > 0 ? `${hours}g${mins ? `${String(mins).padStart(2, '0')}p` : ''}` : `${mins}p`
+}
+
 /** "45 phút", "4 giờ 33 phút", "2 ngày 8 giờ". */
 export function formatDurationVi(ms: number): string {
   const minutes = Math.max(0, Math.round(ms / 60_000))

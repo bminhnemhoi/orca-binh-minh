@@ -1,6 +1,6 @@
 import type { RateLimitState, RateLimitWindow } from '../../../../shared/rate-limit-types'
 import { quotaSections, type QuotaSection } from './quota-sections'
-import { computeQuotaPace, type QuotaPace, type QuotaSample } from './quota-pace'
+import { computeQuotaPace, quotaWindowName, type QuotaPace, type QuotaSample } from './quota-pace'
 
 export type QuotaLevel = 'ok' | 'warn' | 'crit'
 
@@ -122,6 +122,24 @@ export function lowestQuotaLeft(rows: readonly QuotaRow[]): number | null {
     [row.short, row.long].filter(Boolean).map((w) => 100 - w!.window.usedPercent)
   )
   return lefts.length ? Math.min(...lefts) : null
+}
+
+/** "Claude · 5 giờ" or "Antigravity · Claude & GPT · tuần" (bucket labels already name the pool). */
+export function quotaWindowTitle(row: QuotaRow, w: QuotaRowWindow): string {
+  return `${row.name} · ${quotaWindowName(w.label, w.window.windowMinutes)}`
+}
+
+/** The title of the window with the least left, or null when nothing is known. */
+export function lowestQuotaLabel(rows: readonly QuotaRow[]): string | null {
+  let best: { row: QuotaRow; w: QuotaRowWindow } | null = null
+  for (const row of rows) {
+    for (const w of [row.short, row.long]) {
+      if (w && (!best || w.window.usedPercent > best.w.window.usedPercent)) {
+        best = { row, w }
+      }
+    }
+  }
+  return best ? quotaWindowTitle(best.row, best.w) : null
 }
 
 /** The pool with the most room, offered as the place to move work when another runs short. */

@@ -3,6 +3,7 @@ import {
   computeQuotaPace,
   describePace,
   fitRecentRate,
+  formatDurationCompact,
   formatDurationVi,
   formatRunOutTime,
   quotaWindowName
@@ -94,5 +95,14 @@ describe('history-based pace', () => {
     expect(describePace(0.3)).toBe('Đúng nhịp')
     expect(describePace(-8.2)).toBe('Dư 8%')
     expect(describePace(12.6)).toBe('Vượt nhịp 13%')
+  })
+})
+
+describe('formatDurationCompact', () => {
+  it('fits row headers', () => {
+    expect(formatDurationCompact(28 * 60_000)).toBe('28p')
+    expect(formatDurationCompact((4 * 60 + 59) * 60_000)).toBe('4g59p')
+    expect(formatDurationCompact(5 * 60 * 60_000)).toBe('5g')
+    expect(formatDurationCompact((3 * 1440 + 22 * 60) * 60_000)).toBe('3n22g')
   })
 })

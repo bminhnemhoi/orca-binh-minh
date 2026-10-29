@@ -30,6 +30,7 @@ function renderPet(overrides: {
       waiting={overrides.waiting ?? 0}
       finished={0}
       lowestQuotaLeft={80}
+      quotaLabel={null}
       attentionTarget={overrides.target ?? null}
     />
   )

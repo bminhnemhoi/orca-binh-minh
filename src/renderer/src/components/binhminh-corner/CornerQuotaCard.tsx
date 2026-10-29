@@ -5,7 +5,13 @@ import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
 import { ProviderIcon } from '../status-bar/tooltip'
 import { QuotaBurnChart } from './charts/QuotaBurnChart'
 import { readQuotaSeries } from './quota-history'
-import { describePace, formatDurationVi, formatRunOutTime, quotaWindowName } from './quota-pace'
+import {
+  describePace,
+  formatDurationCompact,
+  formatDurationVi,
+  formatRunOutTime,
+  quotaWindowName
+} from './quota-pace'
 import { buildQuotaRows, type QuotaRow, type QuotaRowWindow } from './quota-rows'
 import { quotaSections } from './quota-sections'
 
@@ -95,7 +101,9 @@ export function CornerQuotaCard(): React.JSX.Element | null {
       {rows.map((row) => {
         const head = row.short ?? row.long!
         const leftPct = Math.round(100 - head.window.usedPercent)
-        const reset = head.window.resetsAt ? formatDurationVi(head.window.resetsAt - now) : null
+        const reset = head.window.resetsAt
+          ? formatDurationCompact(head.window.resetsAt - now)
+          : null
         const expanded = open === row.key
         const chartWindow = row.tight
         return (
@@ -110,14 +118,17 @@ export function CornerQuotaCard(): React.JSX.Element | null {
               onClick={() => setOpen(expanded ? null : row.key)}
               aria-expanded={expanded}
               className="flex w-full cursor-pointer items-center gap-1.5 text-left"
-              title={row.accountEmail ?? undefined}
+              title={[`${row.name}${row.pool ? ` · ${row.pool}` : ''}`, row.accountEmail]
+                .filter(Boolean)
+                .join('\n')}
             >
               <span className="flex size-3.5 shrink-0 items-center justify-center">
                 <ProviderIcon provider={row.provider} />
               </span>
+              {/* Why the pool alone for Antigravity: its logo already names the provider, and the
+                  header must leave room for the numbers. */}
               <span className="min-w-0 flex-1 truncate text-[12px] font-medium bm-t1">
-                {row.name}
-                {row.pool ? <span className="font-normal bm-t3"> · {row.pool}</span> : null}
+                {row.pool ?? row.name}
               </span>
               <span className="shrink-0 text-[11.5px] bm-num bm-t1">
                 {leftPct}%{reset ? <span className="bm-t3"> · {reset}</span> : null}

@@ -60,7 +60,9 @@ export function derivePetMood(input: PetMoodInput): PetMoodResult {
 export function describePetMood(
   result: PetMoodResult,
   counts: { working: number; waiting: number; errored: number },
-  petName: string
+  petName: string,
+  /** Names the quota running low, e.g. "Codex · 5 giờ". */
+  quotaLabel?: string | null
 ): string {
   switch (result.mood) {
     case 'alert':
@@ -76,7 +78,11 @@ export function describePetMood(
         ? '1 agent đang làm việc'
         : `${counts.working} agent đang làm việc`
     case 'tired':
-      return result.lateNight ? 'Khuya rồi, nghỉ thôi nhé' : 'Hạn mức sắp hết rồi'
+      return result.lateNight
+        ? 'Khuya rồi, nghỉ thôi nhé'
+        : quotaLabel
+          ? `${quotaLabel} sắp hết hạn mức`
+          : 'Hạn mức sắp hết rồi'
     case 'sleep':
       return `${petName} đang ngủ`
     default:

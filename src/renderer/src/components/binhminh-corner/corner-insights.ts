@@ -1,6 +1,6 @@
 import type { QuotaRow } from './quota-rows'
-import { roomiestRow } from './quota-rows'
-import { formatDurationVi, formatRunOutTime, quotaWindowName } from './quota-pace'
+import { quotaWindowTitle, roomiestRow } from './quota-rows'
+import { formatDurationVi, formatRunOutTime } from './quota-pace'
 
 export type InsightAction = 'enable-hibernation' | 'show-memory' | 'show-cpu'
 
@@ -40,12 +40,12 @@ function mean(values: readonly number[]): number | null {
 
 function quotaTip(row: QuotaRow, rows: readonly QuotaRow[], now: number): Insight {
   const w = row.tight
-  const name = `${row.name}${row.pool ? ` ${row.pool}` : ''} · ${quotaWindowName(w.label, w.window.windowMinutes)}`
+  const name = quotaWindowTitle(row, w)
   const left = Math.round(100 - w.window.usedPercent)
   const reset = w.window.resetsAt ? formatDurationVi(w.window.resetsAt - now) : null
   const alt = roomiestRow(rows, row)
   const altText = alt
-    ? ` Còn ${Math.round(100 - alt.tight.window.usedPercent)}% ở ${alt.name}${alt.pool ? ` ${alt.pool}` : ''}.`
+    ? ` Còn ${Math.round(100 - alt.tight.window.usedPercent)}% ở ${alt.name}${alt.pool ? ` · ${alt.pool}` : ''}.`
     : ''
   const text =
     w.pace?.runsOutAt && w.window.resetsAt
@@ -119,7 +119,7 @@ export function evaluateInsights(
       candidates.push({
         id: `use:${row.key}`,
         level: 'info',
-        text: `${row.name}${row.pool ? ` ${row.pool}` : ''} · tuần còn ${Math.round(left)}%, reset sau ${formatDurationVi(until)}. Tranh thủ chạy việc dài.`,
+        text: `${row.name}${row.pool ? ` · ${row.pool}` : ''} · tuần còn ${Math.round(left)}%, reset sau ${formatDurationVi(until)}. Tranh thủ chạy việc dài.`,
         detail: 'Phần hạn mức tuần chưa dùng sẽ mất khi reset.',
         action: null
       })
