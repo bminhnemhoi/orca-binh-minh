@@ -36,6 +36,7 @@ Mức độ tin cậy: **[Đã thử]** = kiểm chứng trên máy này ngày 2
 3. **Chế độ API key** bật bằng `"modelProvider": "gemini"` trong `settings.json` cộng biến môi trường `GEMINI_API_KEY`. Chỉ có biến môi trường thì không có tác dụng. `GOOGLE_API_KEY` và `.env` bị bỏ qua. Có từ bản 1.1.13. [Chính thức] [Đã thử: thiếu key thì `agy` từ chối chạy với thông báo rõ ràng; có key thì `/config` báo `modelProvider gemini`, 0 token]
 4. Gộp 2 và 3 lại: **chế độ API key có thể bật riêng từng pane**, không ảnh hưởng đăng nhập Google của các pane khác. [Đã thử]
 5. **Đổi tài khoản chính thức**: `/logout` xoá token khỏi keyring, sau đó chạy lại `agy` để đăng nhập trong trình duyệt (qua SSH thì dán mã). [Chính thức] Mọi phiên `agy` khác đang chạy sẽ bị ảnh hưởng. [Chính thức, #1261]
+   [Đã thử 29/10/2026 trên agy 1.4.10] `/logout` chỉ chạy trong `agy` đang mở: `agy -p /logout` bị từ chối ("not available in print mode"), còn `agy -i /logout` gửi chữ `/logout` cho AI chứ không chạy lệnh. Dán `/logout` vào ô nhập rồi nhấn Enter thì chạy đúng lệnh, và `agy` hỏi lại "Are you sure you want to sign out?". Không có lệnh con `agy logout`.
 6. **Lấy danh tính**: JSON của statusline có `email`, `plan_tier`, `quota`, `agent_state`, `model`, `cost`. Statusline chạy khi trạng thái agent đổi, tối đa mỗi 300 ms, timeout 5 giây, tắt sau 30 lần lỗi liên tiếp. `stack_with_default: true` giữ dòng trạng thái gốc. [Chính thức] Chưa có lệnh `agy whoami` (issue #1069). Hook không có trường tài khoản. [Chính thức]
 7. **Giới hạn của chế độ API key**: hook có thể không chạy (#893), một số tính năng thiếu (#1322). [Báo cáo trên repo chính thức]
 8. **Lỗi đã biết khi đổi tài khoản**: hạn mức hiển thị không làm mới sau `/logout` và đăng nhập tài khoản khác (#1311; Google chưa tái hiện được trên 1.4.4). [Báo cáo]
@@ -80,8 +81,8 @@ Mức độ tin cậy: **[Đã thử]** = kiểm chứng trên máy này ngày 2
 
 **c. Luồng "Đổi tài khoản Google"** (`src/main/antigravity/account-switch.ts` cùng IPC `antigravityAccount:switch`)
 1. Liệt kê các pane `agy` đang sống (theo cách `live-pty-gate.ts` của Claude). Nếu còn pane thì hiện danh sách và yêu cầu bạn đóng chúng, không tự giết pane.
-2. Mở một terminal chạy `agy`, gửi `/logout`, đợi `agy` thoát.
-3. Chạy lại `agy` để `agy` mở trang đăng nhập Google. Bạn tự chọn tài khoản.
+2. Mở `agy` trong một tab riêng và điền sẵn `/logout` vào ô nhập (chưa gửi). Bạn nhấn Enter, xác nhận `y`. Tab riêng vì Orca điền vào PTY đầu tiên của tab; nếu chia đôi pane thì chữ sẽ rơi vào pane khác. (Đã làm: `antigravity-sign-out-draft.ts`.)
+3. `agy` mở trang đăng nhập Google (nếu `agy` thoát thì gõ lại `agy`). Bạn tự chọn tài khoản.
 4. Khi statusline báo email mới, ép làm mới hạn mức (`fetchAntigravityRateLimits`), tránh lỗi #1311, và ghi email kèm số liệu hạn mức.
 5. Không có bước nào đọc hay sao chép token.
 

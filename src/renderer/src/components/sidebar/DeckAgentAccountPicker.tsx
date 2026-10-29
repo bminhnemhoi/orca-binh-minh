@@ -273,12 +273,17 @@ export function DeckAgentAccountPicker({
         {local && agent === 'antigravity' && pendingSwitch !== undefined ? (
           <div className="space-y-2 rounded-md border border-border p-2" role="alert">
             <p className="text-xs">
-              {pendingSwitch ? `Switch agy to ${pendingSwitch}?` : 'Sign in to another account?'}
+              {pendingSwitch
+                ? `Switch agy to ${pendingSwitch}?`
+                : antigravityEmail
+                  ? 'Sign in to another account?'
+                  : 'Sign in to agy?'}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              agy keeps one Google sign-in for this computer. Orca signs agy out, then agy opens
-              Google sign-in in your browser{pendingSwitch ? `: choose ${pendingSwitch} there` : ''}
-              . Every agy uses the new account afterwards.
+              {antigravityEmail
+                ? `agy holds one Google sign-in for this computer, so this replaces ${antigravityEmail} instead of adding a second one. Orca opens agy with /logout typed in: press Enter and confirm, then sign in${pendingSwitch ? ` as ${pendingSwitch}` : ''} in the browser page agy opens.`
+                : `agy opens Google sign-in in your browser${pendingSwitch ? `: choose ${pendingSwitch} there` : ''}.`}{' '}
+              Every agy uses that account afterwards, and Orca remembers it here.
             </p>
             {liveAntigravityTabs > 0 ? (
               <p className="text-[11px] text-destructive">
@@ -338,7 +343,11 @@ export function DeckAgentAccountPicker({
             onClick={agent === 'antigravity' && local ? () => setPendingSwitch(null) : openAccounts}
           >
             <Plus />
-            {agent === 'antigravity' && !antigravityEmail ? 'Sign in' : 'Add account'}
+            {agent !== 'antigravity' || !local
+              ? 'Add account'
+              : antigravityEmail
+                ? 'Use another account'
+                : 'Sign in'}
           </Button>
           {selectedId && agent !== 'antigravity' ? (
             <Button

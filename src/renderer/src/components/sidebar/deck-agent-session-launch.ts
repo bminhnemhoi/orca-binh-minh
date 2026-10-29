@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
 import { launchAiVaultSessionInNewTab } from '@/lib/launch-ai-vault-session'
@@ -6,8 +7,7 @@ import { buildAiVaultResumeStartupForWorktree } from '@/lib/ai-vault-resume-comm
 import { activateAiVaultStructuredSession } from '@/lib/activate-ai-vault-structured-session'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import { activateTabAndFocusPane } from '@/lib/activate-tab-and-focus-pane'
-import { buildAntigravitySignInCommand } from '@/lib/antigravity-sign-in-command'
-import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
+import { draftAntigravitySignOut } from '@/lib/antigravity-sign-out-draft'
 import { findOriginalAiVaultSessionPane } from '../right-sidebar/ai-vault-original-pane'
 import { resolveAiVaultSessionLaunchTarget } from '../right-sidebar/ai-vault-session-launch-target'
 import { AGENT_LAUNCH_ACCOUNT_ENV } from '../../../../shared/agent-launch-account'
@@ -16,6 +16,30 @@ import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { WorktreeStartupLaunch } from '../../../../shared/worktree/launch-types'
 import { deckAccountLaunchIsLocal, launchDeckAccountAgent } from './deck-account-agent-launch'
 import { launchDeckAgentInPane, type DeckAgentSplitTarget } from './deck-agent-split'
+
+/**
+ * Opens agy for a sign-in or account switch. A signed-in agy gets `/logout` waiting in its input;
+ * a signed-out one asks to sign in by itself.
+ */
+async function launchAntigravitySwitch(worktreeId: string, groupId: string): Promise<string> {
+  const signedIn = Boolean(useAppStore.getState().rateLimits.antigravity?.accountEmail)
+  // Why a tab of its own: the draft goes to the tab's first PTY, which in a split is another pane.
+  const tabId = await launchDeckAccountAgent(
+    worktreeId,
+    groupId,
+    'antigravity',
+    undefined,
+    undefined,
+    null,
+    'new-tab'
+  )
+  if (signedIn) {
+    void draftAntigravitySignOut(tabId, () =>
+      toast.message('Type /logout in agy and press Enter, then sign in to the other account.')
+    )
+  }
+  return tabId
+}
 
 export async function launchDeckAgentSession(args: {
   agent: TuiAgent
@@ -45,16 +69,15 @@ export async function launchDeckAgentSession(args: {
         agent === 'codex' ||
         agent === 'antigravity')
     ) {
+      if (args.login && agent === 'antigravity') {
+        return launchAntigravitySwitch(worktreeId, groupId)
+      }
       return launchDeckAccountAgent(
         worktreeId,
         groupId,
         agent,
         effectiveAccountId ?? undefined,
-        args.login && agent === 'antigravity'
-          ? buildAntigravitySignInCommand(
-              resolveAgentLaunchExecutionContext(state, { worktreeId }).queuedShell
-            )
-          : undefined,
+        undefined,
         pane
       )
     }

@@ -33,13 +33,15 @@ export async function launchDeckAccountAgent(
   agent: TuiAgent,
   accountId?: string,
   commandOverride?: string,
-  pane?: DeckAgentSplitTarget | null
+  pane?: DeckAgentSplitTarget | null,
+  placement: 'split' | 'new-tab' = 'split'
 ): Promise<string> {
   const state = useAppStore.getState()
   if (!deckAccountLaunchIsLocal(worktreeId)) {
     throw new Error('Launch accounts on the host that owns this workspace.')
   }
-  const split = pane ?? resolveDeckAgentSplitTarget(worktreeId, null)
+  const split =
+    placement === 'new-tab' ? null : (pane ?? resolveDeckAgentSplitTarget(worktreeId, null))
   if (split) {
     await launchDeckAgentInPane(worktreeId, split, agent, { accountId, commandOverride })
     return split.tabId

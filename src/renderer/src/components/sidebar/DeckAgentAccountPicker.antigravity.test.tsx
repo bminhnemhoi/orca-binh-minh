@@ -100,4 +100,19 @@ describe('Deck account picker for Antigravity', () => {
     expect(launch).not.toHaveBeenCalled()
     expect(screen.queryByText('Switch agy to old@example.com?')).toBeNull()
   })
+
+  it('says a new account replaces the signed-in one rather than adding to it', () => {
+    const launch = vi.fn()
+    render(
+      <DeckAgentAccountPicker agent="antigravity" local onLaunch={launch} onClose={() => {}} />
+    )
+    expect(screen.queryByRole('button', { name: 'Add account' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Use another account' }))
+    expect(screen.getByText('Sign in to another account?')).toBeTruthy()
+    expect(
+      screen.getByText(/replaces cur@example\.com instead of adding a second one/)
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(launch).toHaveBeenCalledWith(undefined, true)
+  })
 })
