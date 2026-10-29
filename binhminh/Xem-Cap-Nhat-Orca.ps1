@@ -21,7 +21,7 @@ foreach ($remote in git remote) {
     foreach ($ref in git for-each-ref --format='%(refname:short)' "refs/remotes/$remote") {
         if ($ref -match '/HEAD$' -or $ref -like '*/upstream-main') { continue }
         $commits = @(git log --oneline --no-merges --cherry-pick --right-only "binhminh...$ref" --not lamng/upstream-main |
-            Where-Object { $daXem -notcontains $_.Split(' ')[0] })
+            Where-Object { $hash = $_.Split(' ')[0]; -not ($daXem | Where-Object { $hash.StartsWith($_) -or $_.StartsWith($hash) }) })
         if ($commits.Count -eq 0) { continue }
         Write-Host "`n== $ref : $($commits.Count) commit rieng chua co trong ban cua ban"
         $commits | Select-Object -First 15
