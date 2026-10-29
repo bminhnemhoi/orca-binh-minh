@@ -19,6 +19,7 @@ import { registerAutoUpdaterHandlers } from '../updater-events'
 import { getServeUpdateHandoffFailure } from '../serve-update-handoff'
 import { recordUpdaterLifecycle } from '../updater-lifecycle-diagnostics'
 import { AUTO_UPDATE_CHECK_INTERVAL_MS } from './updater-state'
+import { IS_BINHMINH_FORK } from './updater-disabled'
 import { UpdaterDownloadInstall } from './updater-download-install'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-state'
 
@@ -139,6 +140,9 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
       return
     }
     if (is.dev) {
+      return
+    }
+    if (IS_BINHMINH_FORK) {
       return
     }
 

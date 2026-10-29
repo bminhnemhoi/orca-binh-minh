@@ -20,3 +20,7 @@ declare const ORCA_POSTHOG_WRITE_KEY: string | null
 // point a packaged build at a staging server without re-running the
 // release pipeline.
 declare const ORCA_DIAGNOSTICS_TOKEN_URL: string | null
+
+// Orca Bình Minh fork marker, `true` in every build of the fork (electron.vite.config.ts) and
+// undefined under Vitest. Read through IS_BINHMINH_FORK in src/main/updater/updater-disabled.ts.
+declare const ORCA_BINHMINH_FORK: boolean
