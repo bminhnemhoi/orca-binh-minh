@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const cpus = vi.fn()
+vi.mock('electron', () => ({
+  app: {
+    getAppMetrics: () => [
+      { memory: { workingSetSize: 1024 } },
+      { memory: { workingSetSize: 2048 } }
+    ]
+  }
+}))
 vi.mock('node:os', () => ({ default: { cpus: () => cpus() } }))
 vi.mock('../memory/host-memory', () => ({
   collectHostMemory: async () => ({
@@ -27,7 +35,8 @@ describe('sampleCornerHostLoad', () => {
       cpuPercent: null,
       cpuCoreCount: 8,
       memoryUsedBytes: 12,
-      memoryTotalBytes: 16
+      memoryTotalBytes: 16,
+      orcaAppBytes: 3 * 1024 * 1024
     })
     // +300 busy and +100 idle across both cores since the first sample: 75% busy.
     cpus.mockReturnValueOnce([core(250, 950), core(250, 950)])

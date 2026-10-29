@@ -5,7 +5,7 @@ import { resolveBinhMinhCornerSettings } from '../../../../shared/binhminh-corne
 
 const playPetVoice = vi.fn()
 const revealDashboardAgent = vi.fn()
-vi.mock('./pet-voice', () => ({ playPetVoice: (...args: unknown[]) => playPetVoice(...args) }))
+vi.mock('./pet-voice', () => ({ playPetSound: (...args: unknown[]) => playPetVoice(...args) }))
 vi.mock('../dashboard/reveal-dashboard-agent', () => ({
   revealDashboardAgent: (...args: unknown[]) => revealDashboardAgent(...args)
 }))
@@ -19,7 +19,10 @@ function renderPet(overrides: {
   working?: number
   target?: typeof target | null
 }) {
-  const settings = resolveBinhMinhCornerSettings({ pet: { species: 'dog', name: 'Lu' } })
+  // Why flat: the test DOM has no WebGL; the 3D pet has its own fallback to this view.
+  const settings = resolveBinhMinhCornerSettings({
+    pet: { species: 'dog', name: 'Lu', render: 'flat' }
+  })
   return render(
     <CornerPet
       settings={{ ...settings, lateNightFromHour: null }}
@@ -42,7 +45,7 @@ describe('CornerPet', () => {
   it('barks and shows a heart when petted', () => {
     const { container } = renderPet({})
     fireEvent.click(screen.getByRole('button', { name: 'Vuốt ve Lu' }))
-    expect(playPetVoice).toHaveBeenCalledWith('bark', 0.6)
+    expect(playPetVoice).toHaveBeenCalledWith(expect.objectContaining({ id: 'dog' }), 0.6)
     expect(container.querySelector('svg.bm-pet')?.hasAttribute('data-petted')).toBe(true)
   })
 
@@ -59,6 +62,6 @@ describe('CornerPet', () => {
     const svg = container.querySelector('svg.bm-pet')
     expect(svg?.getAttribute('data-mood')).toBe('work')
     expect(svg?.getAttribute('data-speed')).toBe('3')
-    expect(screen.getByText('4 agent đang làm việc')).toBeTruthy()
+    expect(screen.getByText('4 đang làm')).toBeTruthy()
   })
 })

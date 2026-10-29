@@ -1,4 +1,4 @@
-import type { PetVoice } from './pet-species'
+import type { PetSpecies, PetVoice } from './pet-species'
 
 /**
  * Pet voices synthesized with Web Audio.
@@ -166,7 +166,63 @@ const VOICES: Record<PetVoice, (ctx: AudioContext, out: AudioNode, t: number) =>
   hum
 }
 
-/** Plays one call of the voice at `volume` (0–1). Silently does nothing without Web Audio. */
+const decoded = new Map<string, Promise<AudioBuffer | null>>()
+/** Transient clips (a thump, a squeak) read quieter at the same peak, so they get a lift. */
+const CLIP_GAIN: Readonly<Record<string, number>> = { rabbit: 1.25, hamster: 1.25 }
+
+function decode(ctx: AudioContext, url: string): Promise<AudioBuffer | null> {
+  let pending = decoded.get(url)
+  if (!pending) {
+    // Why fetch on a data: URL: the clips are embedded, so this never touches disk or network.
+    pending = fetch(url)
+      .then((res) => res.arrayBuffer())
+      .then((bytes) => ctx.decodeAudioData(bytes))
+      .catch(() => null)
+    decoded.set(url, pending)
+  }
+  return pending
+}
+
+/**
+ * Plays a real recording for the species (CC0 / public-domain clips, see
+ * binhminh/docs/pet-assets.md), falling back to the synthesized voice if decoding fails.
+ */
+export function playPetSound(species: PetSpecies, volume: number): void {
+  const ctx = getContext()
+  const level = Math.min(Math.max(volume, 0), 1)
+  if (!ctx || level === 0) {
+    return
+  }
+  void import('./pet-sound-data').then(async ({ PET_SOUND_DATA }) => {
+    const clips = PET_SOUND_DATA[species.id]
+    const url = clips?.[Math.floor(Math.random() * clips.length)]
+    const buffer = url ? await decode(ctx, url) : null
+    if (!buffer) {
+      playPetVoice(species.voice, volume)
+      return
+    }
+    if (suspendTimer) {
+      clearTimeout(suspendTimer)
+      suspendTimer = null
+    }
+    await ctx.resume()
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    const gain = ctx.createGain()
+    gain.gain.value = level * (CLIP_GAIN[species.id] ?? 1)
+    source.connect(gain).connect(ctx.destination)
+    source.start()
+    suspendTimer = setTimeout(
+      () => {
+        suspendTimer = null
+        void ctx.suspend()
+      },
+      Math.ceil((buffer.duration + 0.3) * 1000)
+    )
+  })
+}
+
+/** Plays one synthesized call of the voice at `volume` (0–1). Silently does nothing without Web Audio. */
 export function playPetVoice(voice: PetVoice, volume: number): void {
   const ctx = getContext()
   const level = Math.min(Math.max(volume, 0), 1)

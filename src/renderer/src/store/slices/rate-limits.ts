@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { RateLimitRuntimeTarget, RateLimitState } from '../../../../shared/rate-limit-types'
 import { createEmptyRateLimitState } from '../../../../shared/rate-limit-state-factory'
 import { recordAntigravityKnownAccount } from '../../../../shared/antigravity-known-accounts'
+import { recordQuotaHistory } from '@/components/binhminh-corner/quota-history'
 import type { AppState } from '../types'
 
 export type RateLimitSlice = {
@@ -35,6 +36,7 @@ export const createRateLimitSlice: StateCreator<AppState, [], [], RateLimitSlice
   const applyRateLimits = (state: RateLimitState): void => {
     set({ rateLimits: state })
     rememberAntigravityAccount(get, state)
+    recordQuotaHistory(state)
   }
   return {
     rateLimits: createEmptyRateLimitState(),

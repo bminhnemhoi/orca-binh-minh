@@ -4,6 +4,8 @@ export type CornerHostLoad = {
   cpuCoreCount: number
   memoryUsedBytes: number
   memoryTotalBytes: number
+  /** Working set of Orca's own Electron processes (main, renderers, GPU, utilities). */
+  orcaAppBytes: number
 }
 
 export type CornerPhotoImportResult = {

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { computeQuotaPace, formatDurationVi, formatRunOutTime, quotaWindowName } from './quota-pace'
+import {
+  computeQuotaPace,
+  describePace,
+  fitRecentRate,
+  formatDurationVi,
+  formatRunOutTime,
+  quotaWindowName
+} from './quota-pace'
 
 describe('labels', () => {
   it('names windows in Vietnamese and shortens Antigravity model groups', () => {
@@ -58,5 +65,34 @@ describe('computeQuotaPace', () => {
   it('needs a reset time inside the window', () => {
     expect(computeQuotaPace(fiveHour(50, 0), 10)).toBeNull()
     expect(computeQuotaPace(fiveHour(50, 10 * HOUR), 0)).toBeNull()
+  })
+})
+
+describe('history-based pace', () => {
+  const MIN = 60_000
+
+  it('fits a straight burn and ignores too little history', () => {
+    const line = [0, 5, 10, 15].map((m) => ({ t: m * MIN, used: 10 + m }))
+    expect(fitRecentRate(line)! * MIN).toBeCloseTo(1)
+    expect(fitRecentRate(line.slice(0, 2))).toBeNull()
+    expect(fitRecentRate([0, 2, 4].map((m) => ({ t: m * MIN, used: m })))).toBeNull()
+  })
+
+  it('projects from the recent burn instead of the window average', () => {
+    // 4h into a 5h window at 20% used (average 5%/h), but the last 20 min burned 1%/min.
+    const now = 4 * HOUR
+    const history = [0, 5, 10, 15, 20].map((m) => ({ t: now - (20 - m) * MIN, used: m }))
+    const pace = computeQuotaPace(fiveHour(20, now + HOUR), now, history)!
+    expect(pace.rateSource).toBe('recent')
+    expect(pace.ratePerHour).toBeCloseTo(60)
+    // The remaining 80% would take 80 min at that rate, past the reset in 60 min.
+    expect(pace.runsOutAt).toBeNull()
+    expect(pace.projectedAtReset).toBe(80)
+  })
+
+  it('describes pace in plain words', () => {
+    expect(describePace(0.3)).toBe('Đúng nhịp')
+    expect(describePace(-8.2)).toBe('Dư 8%')
+    expect(describePace(12.6)).toBe('Vượt nhịp 13%')
   })
 })

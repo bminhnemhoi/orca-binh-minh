@@ -1,11 +1,14 @@
 import { useEffect, useMemo } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { AgentIcon } from '@/lib/agent-catalog'
 import { useLiveDashboardSnapshot } from '../dashboard/useLiveDashboardSnapshot'
 import { revealDashboardAgent } from '../dashboard/reveal-dashboard-agent'
 import type { DashboardCard, DashboardRevealAgentArgs } from '../../../../shared/dashboard-snapshot'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import { formatDurationVi } from './quota-pace'
+import { useNow } from './use-window-attention'
 
-const MAX_ROWS = 4
+const MAX_ROWS = 3
 
 function revealArgs(card: DashboardCard): DashboardRevealAgentArgs {
   return {
@@ -18,11 +21,11 @@ function revealArgs(card: DashboardCard): DashboardRevealAgentArgs {
 }
 
 /**
- * Agents waiting for the user, each one click from its pane.
+ * Agents waiting for the user, longest wait first, each one click from its pane.
  *
  * Why mounted only while something waits: the live dashboard snapshot subscribes to many store
  * slices, so the corner pays for it only when there is something to show. `showList` false keeps
- * it headless, so the pet can still jump to the first waiting agent.
+ * it headless, so the pet can still jump to the agent that has waited longest.
  */
 export function CornerNeedsYou({
   showList,
@@ -32,8 +35,12 @@ export function CornerNeedsYou({
   onFirstTarget: (target: DashboardRevealAgentArgs | null) => void
 }): React.JSX.Element | null {
   const snapshot = useLiveDashboardSnapshot()
+  const now = useNow(30_000)
   const waiting = useMemo(
-    () => snapshot.cards.filter((card) => card.bucket === 'attention'),
+    () =>
+      snapshot.cards
+        .filter((card) => card.bucket === 'attention')
+        .sort((a, b) => a.stateChangedAt - b.stateChangedAt),
     [snapshot.cards]
   )
   const first = waiting[0]
@@ -58,26 +65,33 @@ export function CornerNeedsYou({
   return (
     <section
       aria-label="Agent cần bạn"
-      className="space-y-1 rounded-md border border-amber-500/40 bg-amber-500/10 p-1.5"
+      className="bm-chip flex-col items-stretch gap-0.5"
+      data-level="warn"
     >
-      <p className="px-1 text-[11px] font-medium text-amber-500">Cần bạn ({waiting.length})</p>
+      <p className="flex items-center gap-1.5 text-[11px] font-medium bm-t1">
+        <AlertTriangle className="size-3.5" style={{ color: 'var(--w-warn)' }} aria-hidden />
+        Cần bạn trả lời ({waiting.length})
+      </p>
       {waiting.slice(0, MAX_ROWS).map((card) => (
         <button
           key={card.paneKey}
           type="button"
           onClick={() => revealDashboardAgent(revealArgs(card))}
-          className="flex w-full cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] outline-none hover:bg-accent/60 focus-visible:ring-1 focus-visible:ring-ring"
+          className="bm-enter flex h-6 w-full cursor-pointer items-center gap-1.5 rounded px-1 text-left text-[11px] hover:bg-[var(--w-surface-hover)]"
           title={card.task || card.worktreeName}
         >
           <AgentIcon agent={card.agentType as TuiAgent} size={12} />
-          <span className="shrink-0 font-medium text-foreground">{card.worktreeName}</span>
-          <span className="min-w-0 flex-1 truncate text-muted-foreground">{card.task}</span>
+          <span className="max-w-[45%] shrink-0 truncate font-medium bm-t1">
+            {card.worktreeName}
+          </span>
+          <span className="min-w-0 flex-1 truncate bm-t3">{card.task}</span>
+          <span className="shrink-0 bm-num bm-t2">
+            {formatDurationVi(Math.max(now - card.stateChangedAt, 0))}
+          </span>
         </button>
       ))}
       {waiting.length > MAX_ROWS ? (
-        <p className="px-1 text-[10.5px] text-muted-foreground">
-          và {waiting.length - MAX_ROWS} agent khác
-        </p>
+        <p className="px-1 text-[10.5px] bm-t3">+{waiting.length - MAX_ROWS} agent khác</p>
       ) : null}
     </section>
   )

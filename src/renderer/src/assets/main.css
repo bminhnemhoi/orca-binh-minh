@@ -9,6 +9,7 @@
 @import './deck-chrome.css';
 @import './deck-tabs.css';
 @import './binhminh-corner.css';
+@import './binhminh-corner-themes.css';
 
 @font-face {
   font-family: 'Geist';

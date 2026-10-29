@@ -5,8 +5,13 @@
  * Why one nested object: the settings store merges top-level keys shallowly, so the corner always
  * writes its whole object and readers resolve it against the defaults below.
  */
+export const CORNER_STYLES = ['orca', 'glass', 'neon', 'paper', 'pastel'] as const
+export type CornerStyle = (typeof CORNER_STYLES)[number]
+
 export type BinhMinhPetSettings = {
   enabled: boolean
+  /** '3d' renders the animated model; 'flat' the light SVG pet. */
+  render: '3d' | 'flat'
   species: string
   name: string
   sound: boolean
@@ -36,6 +41,9 @@ export type BinhMinhReminder = { id: string; label: string; date: string }
 
 export type BinhMinhCornerSettings = {
   enabled: boolean
+  style: CornerStyle
+  /** One actionable tip at a time: RAM pressure, quota pace, CPU load. */
+  insights: boolean
   quotaCard: boolean
   needsYou: boolean
   hostLoad: boolean
@@ -55,6 +63,8 @@ export type BinhMinhCornerSettings = {
 
 export const DEFAULT_BINHMINH_CORNER_SETTINGS: BinhMinhCornerSettings = {
   enabled: true,
+  style: 'glass',
+  insights: true,
   quotaCard: true,
   needsYou: true,
   hostLoad: true,
@@ -62,6 +72,7 @@ export const DEFAULT_BINHMINH_CORNER_SETTINGS: BinhMinhCornerSettings = {
   apiCostCard: false,
   pet: {
     enabled: true,
+    render: '3d',
     species: 'cat',
     name: 'Mochi',
     sound: true,
@@ -115,6 +126,8 @@ export function resolveBinhMinhCornerSettings(value: unknown): BinhMinhCornerSet
   const together = (v.together ?? {}) as Partial<BinhMinhCornerSettings['together']>
   return {
     enabled: bool(v.enabled, d.enabled),
+    style: CORNER_STYLES.includes(v.style as CornerStyle) ? (v.style as CornerStyle) : d.style,
+    insights: bool(v.insights, d.insights),
     quotaCard: bool(v.quotaCard, d.quotaCard),
     needsYou: bool(v.needsYou, d.needsYou),
     hostLoad: bool(v.hostLoad, d.hostLoad),
@@ -122,6 +135,7 @@ export function resolveBinhMinhCornerSettings(value: unknown): BinhMinhCornerSet
     apiCostCard: bool(v.apiCostCard, d.apiCostCard),
     pet: {
       enabled: bool(pet.enabled, d.pet.enabled),
+      render: pet.render === 'flat' ? 'flat' : '3d',
       species: text(pet.species, d.pet.species, 32),
       name: text(pet.name, d.pet.name, 24).trim() || d.pet.name,
       sound: bool(pet.sound, d.pet.sound),

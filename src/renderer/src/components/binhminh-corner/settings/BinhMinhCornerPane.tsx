@@ -6,13 +6,14 @@ import {
   SettingsSwitchRow
 } from '@/components/settings/SettingsFormControls'
 import { DebouncedSettingsTextInput } from '@/components/settings/DebouncedSettingsTextInput'
-import { PET_SPECIES, getPetSpecies } from '../pet-species'
-import { PetSprite } from '../PetSprite'
-import { playPetVoice } from '../pet-voice'
+import { resolvePetSpecies } from '../pet-species'
+import { playPetSound } from '../pet-voice'
 import { updateCornerSettings, useCornerSettings } from '../use-corner-settings'
+import { CornerPetPicker } from './CornerPetPicker'
 import { CornerPhotoSettings } from './CornerPhotoSettings'
 import { CornerReminderSettings } from './CornerReminderSettings'
 import { CornerSlider } from './CornerSlider'
+import { CornerStylePicker } from './CornerStylePicker'
 
 const LATE_NIGHT_OPTIONS = [
   { value: -1, label: 'Tắt' },
@@ -31,6 +32,9 @@ export function BinhMinhCornerPane(): React.JSX.Element {
   const pet = s.pet
   return (
     <div className="space-y-1">
+      <Heading>Phong cách</Heading>
+      <CornerStylePicker value={s.style} />
+
       <Heading>Chung</Heading>
       <SettingsSwitchRow
         label="Bật Góc Bình Minh"
@@ -67,6 +71,13 @@ export function BinhMinhCornerPane(): React.JSX.Element {
         onChange={() => void updateCornerSettings({ flashTaskbar: !s.flashTaskbar })}
       />
       <SettingsSwitchRow
+        label="Gợi ý tối ưu"
+        description="Một gợi ý có nút hành động khi RAM, CPU hoặc hạn mức gặp vấn đề (ví dụ: bật tự ngủ cho agent đã xong). Ẩn được 1 giờ."
+        checked={s.insights}
+        disabled={!s.enabled}
+        onChange={() => void updateCornerSettings({ insights: !s.insights })}
+      />
+      <SettingsSwitchRow
         label="Ô ước tính chi phí API"
         description="Chi phí quy đổi theo giá API từ log trên máy; cần bật Usage Analytics trong Stats & Usage."
         checked={s.apiCostCard}
@@ -82,36 +93,23 @@ export function BinhMinhCornerPane(): React.JSX.Element {
         disabled={!s.enabled}
         onChange={() => void updateCornerSettings({ pet: { enabled: !pet.enabled } })}
       />
-      <div className="grid grid-cols-6 gap-2 py-2" role="radiogroup" aria-label="Chọn thú cưng">
-        {PET_SPECIES.map((species) => {
-          const selected = species.id === getPetSpecies(pet.species).id
-          return (
-            <button
-              key={species.id}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              onClick={() => {
-                void updateCornerSettings({ pet: { species: species.id } })
-                if (pet.sound) {
-                  playPetVoice(species.voice, pet.volume)
-                }
-              }}
-              className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg border p-1.5 text-xs transition-colors ${selected ? 'border-primary bg-accent' : 'border-border hover:bg-accent/50'}`}
-            >
-              <PetSprite
-                species={species}
-                mood="idle"
-                speed={1}
-                petted={false}
-                paused={!selected}
-                size={48}
-              />
-              {species.label}
-            </button>
-          )
-        })}
-      </div>
+      <SettingsRow
+        label="Kiểu hiển thị"
+        description="3D có chuyển động thật; Phẳng nhẹ hơn cho máy yếu hoặc khi chạy pin."
+        control={
+          <SettingsSegmentedControl
+            size="sm"
+            value={pet.render}
+            options={[
+              { value: '3d', label: '3D' },
+              { value: 'flat', label: 'Phẳng' }
+            ]}
+            ariaLabel="Kiểu hiển thị thú cưng"
+            onChange={(render) => void updateCornerSettings({ pet: { render } })}
+          />
+        }
+      />
+      <CornerPetPicker pet={pet} />
       <SettingsRow
         label="Tên thú cưng"
         control={
@@ -125,7 +123,7 @@ export function BinhMinhCornerPane(): React.JSX.Element {
       />
       <SettingsSwitchRow
         label="Âm thanh"
-        description="Tiếng kêu tổng hợp ngay trong Orca: chó sủa, mèo kêu meo, cáo kêu ét, thỏ và hamster chít chít, gấu trúc ư."
+        description="Tiếng kêu thật của từng con (bản ghi âm CC0 / public domain): mèo meo, chó sủa, cáo kêu, thỏ giậm chân, gấu trúc, chim, hamster chít."
         checked={pet.sound}
         onChange={() => void updateCornerSettings({ pet: { sound: !pet.sound } })}
       />
@@ -143,7 +141,7 @@ export function BinhMinhCornerPane(): React.JSX.Element {
               variant="outline"
               size="sm"
               disabled={!pet.sound}
-              onClick={() => playPetVoice(getPetSpecies(pet.species).voice, pet.volume)}
+              onClick={() => playPetSound(resolvePetSpecies(pet.species, pet.render), pet.volume)}
             >
               <Volume2 className="size-3.5" />
               Nghe thử

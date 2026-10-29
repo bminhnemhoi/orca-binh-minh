@@ -1,4 +1,5 @@
 import os from 'node:os'
+import { app } from 'electron'
 import { collectHostMemory } from '../memory/host-memory'
 import type { CornerHostLoad } from '../../shared/binhminh-corner-host-load'
 
@@ -15,6 +16,15 @@ function readCpuTimes(): CpuTimes {
     total += t.user + t.nice + t.sys + t.idle + t.irq
   }
   return { idle, total }
+}
+
+/** Why getAppMetrics: Electron already tracks its own processes, so this costs no process scan. */
+function readOrcaAppBytes(): number {
+  try {
+    return app.getAppMetrics().reduce((sum, metric) => sum + metric.memory.workingSetSize * 1024, 0)
+  } catch {
+    return 0
+  }
 }
 
 /**
@@ -40,7 +50,8 @@ export async function sampleCornerHostLoad(): Promise<CornerHostLoad> {
     cpuPercent,
     cpuCoreCount: memory.cpuCoreCount,
     memoryUsedBytes: memory.usedMemory,
-    memoryTotalBytes: memory.totalMemory
+    memoryTotalBytes: memory.totalMemory,
+    orcaAppBytes: readOrcaAppBytes()
   }
 }
 

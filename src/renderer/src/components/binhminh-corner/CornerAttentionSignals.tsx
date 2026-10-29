@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useAgentBucketCounts } from '../dashboard/useAgentBucketCounts'
 import { isLateNight } from './corner-logic'
-import { getPetSpecies } from './pet-species'
-import { playPetVoice } from './pet-voice'
+import { resolvePetSpecies } from './pet-species'
+import { playPetSound } from './pet-voice'
 import { useCornerSettings } from './use-corner-settings'
 
 /** Why a cooldown: several agents finishing a turn together should not bark in a chorus. */
@@ -40,7 +40,7 @@ export function CornerAttentionSignals(): null {
       now - lastVoiceAt.current >= VOICE_COOLDOWN_MS
     ) {
       lastVoiceAt.current = now
-      playPetVoice(getPetSpecies(pet.species).voice, pet.volume)
+      playPetSound(resolvePetSpecies(pet.species, pet.render), pet.volume)
     }
   }, [attention, settings])
   return null

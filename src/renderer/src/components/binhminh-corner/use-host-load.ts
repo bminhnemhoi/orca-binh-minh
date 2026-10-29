@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { CornerHostLoad } from '../../../../shared/binhminh-corner-host-load'
+import type { HostSample } from './corner-insights'
 
 export const HOST_LOAD_POLL_MS = 3_000
-export const HOST_LOAD_HISTORY = 24
+/** Five minutes at one sample per 3 s, as the CPU sparkline shows it. */
+export const HOST_LOAD_HISTORY = 100
 
 export type HostLoadState = {
   latest: CornerHostLoad | null
-  /** Recent CPU percents, oldest first. */
-  cpuHistory: number[]
+  /** Oldest first; `cpu` is null for the first sample, which has no delta yet. */
+  samples: HostSample[]
 }
 
 /**
@@ -17,7 +19,7 @@ export type HostLoadState = {
  * IPC round trip plus a kernel counter read.
  */
 export function useHostLoad(enabled: boolean): HostLoadState {
-  const [state, setState] = useState<HostLoadState>({ latest: null, cpuHistory: [] })
+  const [state, setState] = useState<HostLoadState>({ latest: null, samples: [] })
   useEffect(() => {
     const api = window.api?.binhminhCorner
     if (!enabled || !api) {
@@ -33,12 +35,14 @@ export function useHostLoad(enabled: boolean): HostLoadState {
           if (disposed) {
             return
           }
+          const sample: HostSample = {
+            t: Date.now(),
+            cpu: latest.cpuPercent,
+            availableBytes: Math.max(0, latest.memoryTotalBytes - latest.memoryUsedBytes)
+          }
           setState((prev) => ({
             latest,
-            cpuHistory:
-              latest.cpuPercent === null
-                ? prev.cpuHistory
-                : [...prev.cpuHistory, latest.cpuPercent].slice(-HOST_LOAD_HISTORY)
+            samples: [...prev.samples, sample].slice(-HOST_LOAD_HISTORY)
           }))
         } catch {
           // A failed sample keeps the last reading; the next tick tries again.
