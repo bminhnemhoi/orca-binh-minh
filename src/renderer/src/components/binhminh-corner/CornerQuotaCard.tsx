@@ -1,10 +1,13 @@
 import { useAppStore } from '@/store'
 import { useResetCountdownClock } from '@/hooks/useResetCountdownClock'
-import { getTightestUsageSection } from '../status-bar/UsageRosterPanel'
-import { barColor, formatResetCountdown, ProviderIcon } from '../status-bar/tooltip'
+import { barColor, getWindowSections, ProviderIcon } from '../status-bar/tooltip'
 import { clampUsedPercent } from '../../../../shared/usage-percentage-display'
-import type { ProviderRateLimits, RateLimitState } from '../../../../shared/rate-limit-types'
-import { computeQuotaPace, formatClockTime } from './quota-pace'
+import type {
+  ProviderRateLimits,
+  RateLimitState,
+  RateLimitWindow
+} from '../../../../shared/rate-limit-types'
+import { computeQuotaPace, formatDurationVi, formatRunOutTime, quotaWindowName } from './quota-pace'
 
 const PROVIDERS = [
   { key: 'claude', label: 'Claude' },
@@ -12,11 +15,28 @@ const PROVIDERS = [
   { key: 'antigravity', label: 'Antigravity' }
 ] as const
 
+/** Below this much left, the row also says when the window resets. */
+const SHOW_RESET_BELOW_LEFT = 40
+
 type QuotaRow = {
   key: string
   label: string
   usage: ProviderRateLimits
-  section: NonNullable<ReturnType<typeof getTightestUsageSection>>
+  section: { label: string; window: RateLimitWindow }
+}
+
+/** The window closest to running out, so one line per provider shows the real constraint. */
+function tightestSection(usage: ProviderRateLimits): QuotaRow['section'] | null {
+  let best: QuotaRow['section'] | null = null
+  for (const { label, window } of getWindowSections(usage)) {
+    if (
+      window &&
+      (!best || clampUsedPercent(window.usedPercent) > clampUsedPercent(best.window.usedPercent))
+    ) {
+      best = { label, window }
+    }
+  }
+  return best
 }
 
 /** Lowest "% left" across the quotas shown, for the pet's mood; null when nothing is known. */
@@ -31,7 +51,7 @@ export function selectQuotaRows(limits: RateLimitState | undefined): QuotaRow[] 
   const rows: QuotaRow[] = []
   for (const provider of PROVIDERS) {
     const usage = limits?.[provider.key]
-    const section = usage && usage.status !== 'unavailable' ? getTightestUsageSection(usage) : null
+    const section = usage && usage.status !== 'unavailable' ? tightestSection(usage) : null
     if (usage && section) {
       rows.push({ key: provider.key, label: provider.label, usage, section })
     }
@@ -40,9 +60,9 @@ export function selectQuotaRows(limits: RateLimitState | undefined): QuotaRow[] 
 }
 
 /**
- * One line per subscription: how much is left of the tightest window, when it resets, and a
- * warning when the current pace would run out first. The data is the same rate-limit state the
- * status bar polls, so this card adds no requests.
+ * One line per subscription: how much is left of the tightest window, and, when it matters,
+ * when it resets or when the current pace would run it out first. The data is the same
+ * rate-limit state the status bar polls, so this card adds no requests.
  */
 export function CornerQuotaCard(): React.JSX.Element | null {
   const limits = useAppStore((s) => s.rateLimits)
@@ -56,14 +76,15 @@ export function CornerQuotaCard(): React.JSX.Element | null {
       {rows.map(({ key, label, usage, section }) => {
         const used = clampUsedPercent(section.window.usedPercent)
         const left = Math.round(100 - used)
+        const name = quotaWindowName(section.label, section.window.windowMinutes)
         const pace = computeQuotaPace(section.window, now)
-        const reset = section.window.resetsAt
-          ? formatResetCountdown(section.window.resetsAt - now)
+        const resetIn = section.window.resetsAt
+          ? formatDurationVi(section.window.resetsAt - now)
           : null
         const title = [
-          `${label} · ${section.label}`,
+          `${label} · ${name}: còn ${left}%`,
           usage.accountEmail ?? null,
-          reset,
+          resetIn ? `Reset sau ${resetIn}` : null,
           pace
             ? `${pace.aheadBy >= 0 ? 'Nhanh' : 'Chậm'} hơn nhịp đều ${Math.abs(Math.round(pace.aheadBy))}%`
             : null
@@ -77,7 +98,7 @@ export function CornerQuotaCard(): React.JSX.Element | null {
                 <ProviderIcon provider={key} />
               </span>
               <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                {label} · {section.label}
+                {label} · {name}
               </span>
               <span className="shrink-0 tabular-nums text-foreground">{left}%</span>
             </div>
@@ -89,8 +110,11 @@ export function CornerQuotaCard(): React.JSX.Element | null {
             </div>
             {pace?.runsOutAt ? (
               <p className="text-[10.5px] text-amber-500">
-                Theo nhịp này hết lúc {formatClockTime(pace.runsOutAt)}
+                Theo nhịp này hết lúc {formatRunOutTime(pace.runsOutAt, now)}
+                {resetIn ? ` · reset sau ${resetIn}` : ''}
               </p>
+            ) : left < SHOW_RESET_BELOW_LEFT && resetIn ? (
+              <p className="text-[10.5px] text-muted-foreground">Reset sau {resetIn}</p>
             ) : null}
           </div>
         )
