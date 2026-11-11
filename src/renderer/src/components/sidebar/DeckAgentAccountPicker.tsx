@@ -7,7 +7,7 @@ import { getUsageRosterRowState } from '../status-bar/usage-roster-row-state'
 import { getTightestUsageSection } from '../status-bar/UsageRosterPanel'
 import { Button } from '../ui/button'
 import { DeckAccountUsage } from './DeckAccountUsage'
-import { listLiveAntigravityTabIds } from '@/lib/antigravity-live-panes'
+import { AntigravitySwitchPanel } from './AntigravitySwitchPanel'
 import {
   forgetAntigravityKnownAccount,
   orderAntigravityKnownAccounts
@@ -43,9 +43,6 @@ export function DeckAgentAccountPicker({
   // Why a confirmation step for Antigravity only: agy has one Google sign-in per machine, so
   // choosing another account signs every agy out. undefined = no switch pending, null = new account.
   const [pendingSwitch, setPendingSwitch] = useState<string | null | undefined>(undefined)
-  const liveAntigravityTabs = useAppStore((s) =>
-    agent === 'antigravity' ? listLiveAntigravityTabIds(s).length : 0
-  )
   const antigravityEmail =
     agent === 'antigravity' ? (limits.antigravity?.accountEmail ?? null) : null
   const antigravityId = (email: string): string => `agy:${email}`
@@ -166,7 +163,7 @@ export function DeckAgentAccountPicker({
     onLaunch(agent === 'antigravity' ? undefined : (id ?? undefined))
   }
   const confirmAntigravitySwitch = (): void => {
-    if (busyRef.current || liveAntigravityTabs > 0) {
+    if (busyRef.current) {
       return
     }
     busyRef.current = true
@@ -271,58 +268,16 @@ export function DeckAgentAccountPicker({
           })}
         </div>
         {local && agent === 'antigravity' && pendingSwitch !== undefined ? (
-          <div className="space-y-2 rounded-md border border-border p-2" role="alert">
-            <p className="text-xs">
-              {pendingSwitch
-                ? `Switch agy to ${pendingSwitch}?`
-                : antigravityEmail
-                  ? 'Sign in to another account?'
-                  : 'Sign in to agy?'}
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              {antigravityEmail
-                ? `agy holds one Google sign-in for this computer, so this replaces ${antigravityEmail} instead of adding a second one. Orca opens agy with /logout typed in: press Enter and confirm, then sign in${pendingSwitch ? ` as ${pendingSwitch}` : ''} in the browser page agy opens.`
-                : `agy opens Google sign-in in your browser${pendingSwitch ? `: choose ${pendingSwitch} there` : ''}.`}{' '}
-              Every agy uses that account afterwards, and Orca remembers it here.
-            </p>
-            {liveAntigravityTabs > 0 ? (
-              <p className="text-[11px] text-destructive">
-                Close the {liveAntigravityTabs} open Antigravity{' '}
-                {liveAntigravityTabs === 1 ? 'tab' : 'tabs'} first.
-              </p>
-            ) : null}
-            <div className="flex items-center justify-between gap-2">
-              {pendingSwitch ? (
-                <Button
-                  variant="link"
-                  size="xs"
-                  disabled={busy}
-                  onClick={() => forgetAntigravityAccount(pendingSwitch)}
-                >
-                  Forget
-                </Button>
-              ) : (
-                <span />
-              )}
-              <span className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  disabled={busy}
-                  onClick={() => setPendingSwitch(undefined)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="xs"
-                  disabled={busy || liveAntigravityTabs > 0}
-                  onClick={confirmAntigravitySwitch}
-                >
-                  {pendingSwitch ? 'Switch' : 'Sign in'}
-                </Button>
-              </span>
-            </div>
-          </div>
+          <AntigravitySwitchPanel
+            key={pendingSwitch ?? 'new-account'}
+            targetEmail={pendingSwitch}
+            signedInEmail={antigravityEmail}
+            busy={busy}
+            onCancel={() => setPendingSwitch(undefined)}
+            onForget={forgetAntigravityAccount}
+            onConfirm={confirmAntigravitySwitch}
+            onClose={onClose}
+          />
         ) : local && agent === 'antigravity' && accounts.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             Orca remembers each Google account agy signs in with.

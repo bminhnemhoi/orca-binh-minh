@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDefaultSettings } from '../../../../shared/constants'
 import { useAppStore } from '@/store'
@@ -9,6 +9,14 @@ import type { ProviderRateLimits } from '../../../../shared/rate-limit-types'
 vi.mock('@/lib/agent-catalog', () => ({
   AgentIcon: () => <span />,
   getAgentLabel: (agent: string) => agent
+}))
+const activateAndRevealWorktree = vi.fn()
+const activateTabAndFocusPane = vi.fn()
+vi.mock('@/lib/worktree-activation', () => ({
+  activateAndRevealWorktree: (...args: unknown[]) => activateAndRevealWorktree(...args)
+}))
+vi.mock('@/lib/activate-tab-and-focus-pane', () => ({
+  activateTabAndFocusPane: (...args: unknown[]) => activateTabAndFocusPane(...args)
 }))
 
 const agyUsage: ProviderRateLimits = {
@@ -21,7 +29,10 @@ const agyUsage: ProviderRateLimits = {
   updatedAt: 1
 }
 
-function liveAgyTab(): void {
+let foregroundByPty: Record<string, string> = {}
+
+function agyLaunchedTab(foregroundProcess: string): void {
+  foregroundByPty = { 'pty-1': foregroundProcess }
   useAppStore.setState({
     tabsByWorktree: {
       wt: [{ id: 'tab-agy', launchAgent: 'antigravity' } as never]
@@ -32,7 +43,21 @@ function liveAgyTab(): void {
   })
 }
 
+async function switchButton(name = 'Switch'): Promise<HTMLElement> {
+  const button = screen.getByRole('button', { name })
+  await waitFor(() => expect(button.hasAttribute('disabled')).toBe(false))
+  return button
+}
+
 beforeEach(() => {
+  foregroundByPty = {}
+  activateAndRevealWorktree.mockClear()
+  activateTabAndFocusPane.mockClear()
+  vi.stubGlobal('api', {
+    pty: {
+      confirmForegroundProcess: vi.fn(async (ptyId: string) => foregroundByPty[ptyId] ?? null)
+    }
+  })
   useAppStore.setState({
     settings: {
       ...getDefaultSettings('/tmp/test-home'),
@@ -47,7 +72,10 @@ beforeEach(() => {
     agentStatusByPaneKey: {}
   })
 })
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 describe('Deck account picker for Antigravity', () => {
   it('lists remembered accounts with the signed-in one first and launches it directly', () => {
@@ -64,7 +92,7 @@ describe('Deck account picker for Antigravity', () => {
     expect(launch).toHaveBeenCalledWith(undefined)
   })
 
-  it('asks before switching and runs the sign-in flow on confirm', () => {
+  it('asks before switching and runs the sign-in flow on confirm', async () => {
     const launch = vi.fn()
     render(
       <DeckAgentAccountPicker agent="antigravity" local onLaunch={launch} onClose={() => {}} />
@@ -72,22 +100,36 @@ describe('Deck account picker for Antigravity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'old@example.com' }))
     expect(launch).not.toHaveBeenCalled()
     expect(screen.getByText('Switch agy to old@example.com?')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
-    expect(launch).toHaveBeenCalledWith(undefined, true)
+    fireEvent.click(await switchButton())
+    await waitFor(() => expect(launch).toHaveBeenCalledWith(undefined, true))
   })
 
-  it('blocks the switch while an Antigravity tab is still running', () => {
-    liveAgyTab()
+  it('does not count a tab started as Antigravity once agy has exited in it', async () => {
+    agyLaunchedTab('powershell.exe')
     const launch = vi.fn()
     render(
       <DeckAgentAccountPicker agent="antigravity" local onLaunch={launch} onClose={() => {}} />
     )
     fireEvent.click(screen.getByRole('button', { name: 'old@example.com' }))
-    expect(screen.getByText(/Close the 1 open Antigravity/)).toBeTruthy()
-    const confirm = screen.getByRole('button', { name: 'Switch' })
-    expect(confirm.hasAttribute('disabled')).toBe(true)
-    fireEvent.click(confirm)
+    fireEvent.click(await switchButton())
+    await waitFor(() => expect(launch).toHaveBeenCalledWith(undefined, true))
+    expect(screen.queryByText(/agy is still running/)).toBeNull()
+  })
+
+  it('blocks the switch while agy still runs in a pane and shows where', async () => {
+    agyLaunchedTab('agy.exe')
+    const launch = vi.fn()
+    const close = vi.fn()
+    render(<DeckAgentAccountPicker agent="antigravity" local onLaunch={launch} onClose={close} />)
+    fireEvent.click(screen.getByRole('button', { name: 'old@example.com' }))
+    expect(await screen.findByText(/agy is still running in 1 pane/)).toBeTruthy()
+    fireEvent.click(await switchButton())
+    await waitFor(() => expect(screen.getByText(/agy is still running in 1 pane/)).toBeTruthy())
     expect(launch).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }))
+    expect(close).toHaveBeenCalled()
+    expect(activateAndRevealWorktree).toHaveBeenCalledWith('wt')
+    expect(activateTabAndFocusPane).toHaveBeenCalledWith('tab-agy', 'leaf')
   })
 
   it('forgets a remembered account without signing anything out', () => {
@@ -101,7 +143,7 @@ describe('Deck account picker for Antigravity', () => {
     expect(screen.queryByText('Switch agy to old@example.com?')).toBeNull()
   })
 
-  it('says a new account replaces the signed-in one rather than adding to it', () => {
+  it('says a new account replaces the signed-in one rather than adding to it', async () => {
     const launch = vi.fn()
     render(
       <DeckAgentAccountPicker agent="antigravity" local onLaunch={launch} onClose={() => {}} />
@@ -112,7 +154,7 @@ describe('Deck account picker for Antigravity', () => {
     expect(
       screen.getByText(/replaces cur@example\.com instead of adding a second one/)
     ).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-    expect(launch).toHaveBeenCalledWith(undefined, true)
+    fireEvent.click(await switchButton('Sign in'))
+    await waitFor(() => expect(launch).toHaveBeenCalledWith(undefined, true))
   })
 })
