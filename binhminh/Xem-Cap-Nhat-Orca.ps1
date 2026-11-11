@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $daXem = @(
     'f91a89b0d' # lamng/deck-ui: ban nhap cu cua 4a7813f3d
 )
-Set-Location 'D:\Brainstorm_Idea\orca_bminh\orca'
+Set-Location (Split-Path $PSScriptRoot -Parent)
 if ($Them) { git remote add $Them[0] $Them[1] }
 
 git fetch --all --prune --quiet

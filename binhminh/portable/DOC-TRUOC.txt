@@ -1,0 +1,24 @@
+ORCA BÌNH MINH - BẢN DỰNG SẴN CHO WINDOWS 10/11 (64-bit)
+
+Cách mở
+  1. Giải nén cả thư mục OrcaBinhMinh ra chỗ cố định, ví dụ D:\Apps\OrcaBinhMinh.
+     Đừng chạy thẳng trong file zip.
+  2. Nhấp đúp Mo-Orca-Binh-Minh.cmd.
+     Lần đầu Windows có thể báo "Windows protected your PC" vì bản này không ký số:
+     bấm More info > Run anyway.
+  3. Muốn có biểu tượng ngoài Desktop: chuột phải Mo-Orca-Binh-Minh.cmd > Show more options >
+     Send to > Desktop (create shortcut).
+
+Dữ liệu của bạn (project, tab, cài đặt, ảnh trong Góc Bình Minh) nằm ở
+  %LOCALAPPDATA%\OrcaBinhMinh\profile
+không nằm trong thư mục app, nên đổi sang bản mới không mất gì.
+
+Cập nhật: tải file zip mới ở
+  https://github.com/bminhnemhoi/orca-binh-minh/releases
+giải nén ra thư mục mới, thoát Orca cũ (menu Orca > Quit), mở bản mới, rồi xoá thư mục cũ.
+Bản này không tự cập nhật.
+
+Orca chỉ điều phối các agent; bạn tự cài CLI mình dùng (Claude Code, Codex, Antigravity agy...).
+
+Hướng dẫn đầy đủ, kể cả cách tự build và chỉnh sửa:
+  https://github.com/bminhnemhoi/orca-binh-minh/blob/main/binhminh/CAI-DAT.md

@@ -2,9 +2,11 @@
 
 Bản Orca riêng của bạn: dựa trên Orca gốc v1.4.220 và fork Lamng, cộng các chỉnh sửa cho Windows và chữ ký Bình Minh.
 
-Repo: https://github.com/bminhnemhoi/orca-binh-minh (private). Nhánh local `binhminh` đẩy lên `main` bằng `git push`.
+Repo: https://github.com/bminhnemhoi/orca-binh-minh (công khai). Nhánh local `binhminh` đẩy lên `main` bằng `git push`.
+Cài cho máy khác (bản dựng sẵn hoặc tự build): [CAI-DAT.md](CAI-DAT.md).
 Script và hướng dẫn này nằm trong thư mục `binhminh/` của repo; launcher `Start-Orca-BinhMinh.ps1` và
 `CHAY-ORCA-BINHMINH.cmd` nằm ngoài repo ở `D:\Brainstorm_Idea\orca_bminh` vì script build tự sửa đường dẫn app trong đó.
+Các đường dẫn ổ D của máy này nằm trong `binhminh\may-nay.ps1`; file này không commit, máy khác dùng mặc định `%LOCALAPPDATA%\OrcaBinhMinh`.
 
 Orca gốc dùng giấy phép MIT: giữ nguyên file `LICENSE` ở gốc repo khi phát triển hoặc chia sẻ.
 
@@ -28,6 +30,7 @@ Chỉ mở được một bản Orca trên một hồ sơ. Muốn đổi bản t
 1. Sửa source (có thể nhờ agent ngay trong workspace **Orca Bình Minh**).
 2. Commit vào nhánh `binhminh`, rồi `git push` để lưu lên GitHub.
 3. Chạy `binhminh\Build-Orca-BinhMinh.ps1`. Script build, đóng gói, trỏ shortcut sang bản mới và giữ bản cũ làm dự phòng.
+   Thêm `-Zip` để có file zip gửi người khác, rồi đưa lên mục Releases của repo.
 4. Thoát Orca, mở lại shortcut.
 
 Quay về bản dự phòng: sửa dòng `$appPath` trong `Start-Orca-BinhMinh.ps1` về thư mục bản cũ trong `D:\orca-local\releases`.
@@ -53,4 +56,4 @@ Lên bản Orca gốc mới (ví dụ v1.4.243) là việc lớn hơn cherry-pic
 ## Dung lượng
 
 Mỗi bản app khoảng 0,7 GB. Script build tự xóa các bản `binhminh-*` cũ hơn bản dự phòng.
-Script từ chối build khi ổ D còn dưới 3 GB.
+Script từ chối build khi ổ chứa source hoặc ổ chứa app còn dưới 3 GB.

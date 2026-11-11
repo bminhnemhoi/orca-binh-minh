@@ -88,3 +88,5 @@
 /mobile/web-entry/**/*.otf -text
 /mobile/web-entry/**/*.woff -text
 /mobile/web-entry/**/*.woff2 -text
+# Orca Binh Minh: cmd.exe scripts keep CRLF on every checkout.
+/binhminh/portable/*.cmd text eol=crlf

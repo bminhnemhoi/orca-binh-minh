@@ -1,3 +1,7 @@
+> **Orca Bình Minh**: bản Orca tuỳ biến dựa trên Orca gốc v1.4.220 và fork [LamngOrca](https://github.com/Towfienes/LamngOrca).
+> Tải bản dựng sẵn cho Windows ở [Releases](https://github.com/bminhnemhoi/orca-binh-minh/releases).
+> Hướng dẫn cài và tự build: [binhminh/CAI-DAT.md](binhminh/CAI-DAT.md). Phần dưới là README gốc của Orca.
+
 <h1 align="center">
   <a href="https://onOrca.dev"><img src="resources/build/icon.png" alt="Orca" width="64" valign="middle" /></a> Orca
 </h1>
